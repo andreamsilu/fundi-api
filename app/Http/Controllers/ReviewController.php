@@ -4,10 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Review;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
+    /**
+     * Get all reviews for a fundi.
+     *
+     * @param User $fundi
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function fundiReviews(User $fundi)
+    {
+        if (!$fundi->isFundi()) {
+            return response()->json(['message' => 'User is not a fundi'], 404);
+        }
+
+        $reviews = Review::where('fundi_id', $fundi->id)
+            ->with(['customer', 'booking'])
+            ->latest()
+            ->paginate(10);
+
+        return response()->json($reviews);
+    }
+
     /**
      * Get all reviews for a fundi.
      *

@@ -20,10 +20,6 @@ class Booking extends Model
         'job_id',
         'fundi_id',
         'status',
-        'proposed_price',
-        'proposal',
-        'accepted_at',
-        'completed_at',
     ];
 
     /**
@@ -32,22 +28,19 @@ class Booking extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'proposed_price' => 'decimal:2',
-        'accepted_at' => 'datetime',
-        'completed_at' => 'datetime',
         'status' => 'string',
     ];
 
     /**
-     * Get the job that was booked.
+     * Get the job that this booking is for.
      */
     public function job(): BelongsTo
     {
-        return $this->belongsTo(ServiceJob::class, 'job_id');
+        return $this->belongsTo(Job::class);
     }
 
     /**
-     * Get the fundi who accepted the booking.
+     * Get the fundi who accepted this booking.
      */
     public function fundi(): BelongsTo
     {
@@ -63,27 +56,27 @@ class Booking extends Model
     }
 
     /**
-     * Scope a query to only include pending bookings.
+     * Scope a query to only include bookings with a specific status.
      */
-    public function scopePending($query)
+    public function scopeWithStatus($query, $status)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', $status);
     }
 
     /**
-     * Scope a query to only include accepted bookings.
+     * Scope a query to only include bookings for a specific fundi.
      */
-    public function scopeAccepted($query)
+    public function scopeForFundi($query, $fundiId)
     {
-        return $query->where('status', 'accepted');
+        return $query->where('fundi_id', $fundiId);
     }
 
     /**
-     * Scope a query to only include completed bookings.
+     * Scope a query to only include bookings for a specific job.
      */
-    public function scopeCompleted($query)
+    public function scopeForJob($query, $jobId)
     {
-        return $query->where('status', 'completed');
+        return $query->where('job_id', $jobId);
     }
 
     /**
@@ -133,7 +126,6 @@ class Booking extends Model
     {
         $this->update([
             'status' => 'accepted',
-            'accepted_at' => now(),
         ]);
 
         $this->job->update(['status' => 'booked']);
@@ -146,7 +138,6 @@ class Booking extends Model
     {
         $this->update([
             'status' => 'completed',
-            'completed_at' => now(),
         ]);
 
         $this->job->update(['status' => 'completed']);
