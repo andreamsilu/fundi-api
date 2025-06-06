@@ -1,0 +1,180 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+**Fundi App API Documentation (Laravel 12 Based)**
+
+---
+
+### Overview
+
+The Fundi App API is a Laravel 12-based RESTful backend that enables clients to connect with local fundis (technicians) through mobile and web applications. The API allows user registration, job posting, fundi discovery, booking, and reviews.
+
+---
+
+### Base URL
+
+```
+https://api.fundiapp.co.tz/v1
+```
+
+---
+
+## Authentication
+
+* Laravel Sanctum is used for token-based authentication.
+* All routes except public listings and registration/login require authentication.
+
+---
+
+## Models and Controllers
+
+### Models
+
+* `User`: Customers and fundis (role-based).
+* `FundiProfile`: Extended data for fundis (skills, availability, rating).
+* `Job`: Job requests created by users.
+* `Booking`: Links a job to a fundi.
+* `Review`: Stores user reviews for completed jobs.
+* `ServiceCategory`: Categories like Plumbing, Electrical, Carpentry.
+
+### Controllers
+
+* `AuthController`: User registration and login.
+* `FundiController`: Fundi listing and filtering.
+* `JobController`: Job creation and tracking.
+* `BookingController`: Accepting or rejecting jobs.
+* `ReviewController`: Submit or view reviews.
+
+---
+
+## Database Schema
+
+### users
+
+| Field       | Type      | Description                  |
+| ----------- | --------- | ---------------------------- |
+| id          | BIGINT    | Primary key                  |
+| name        | VARCHAR   | User's full name             |
+| phone       | VARCHAR   | Unique phone number          |
+| role        | ENUM      | 'customer', 'fundi', 'admin' |
+| password    | VARCHAR   | Hashed password              |
+| created\_at | TIMESTAMP | Creation time                |
+
+### fundi\_profiles
+
+| Field        | Type   | Description               |
+| ------------ | ------ | ------------------------- |
+| id           | BIGINT | Primary key               |
+| user\_id     | BIGINT | FK to users               |
+| category\_id | BIGINT | FK to service\_categories |
+| skills       | TEXT   | Description of skills     |
+| rating       | FLOAT  | Average rating            |
+| location     | STRING | Service location          |
+
+### service\_categories
+
+| Field | Type    | Description   |
+| ----- | ------- | ------------- |
+| id    | BIGINT  | Primary key   |
+| name  | VARCHAR | Category name |
+
+### jobs
+
+| Field        | Type    | Description                |
+| ------------ | ------- | -------------------------- |
+| id           | BIGINT  | Primary key                |
+| user\_id     | BIGINT  | FK to users (customer)     |
+| title        | VARCHAR | Job title                  |
+| description  | TEXT    | Job details                |
+| location     | VARCHAR | Job location               |
+| category\_id | BIGINT  | FK to service\_categories  |
+| status       | ENUM    | 'open', 'booked', 'closed' |
+
+### bookings
+
+| Field     | Type   | Description                                    |
+| --------- | ------ | ---------------------------------------------- |
+| id        | BIGINT | Primary key                                    |
+| job\_id   | BIGINT | FK to jobs                                     |
+| fundi\_id | BIGINT | FK to users                                    |
+| status    | ENUM   | 'pending', 'accepted', 'declined', 'completed' |
+
+### reviews
+
+| Field       | Type    | Description     |
+| ----------- | ------- | --------------- |
+| id          | BIGINT  | Primary key     |
+| booking\_id | BIGINT  | FK to bookings  |
+| rating      | INTEGER | 1–5 star rating |
+| comment     | TEXT    | Review text     |
+
+---
+
+## Endpoints
+
+### Authentication
+
+#### POST `/auth/register`
+
+* Registers a new user.
+
+#### POST `/auth/login`
+
+* Logs in a user and returns a token.
+
+### Fundis
+
+#### GET `/fundis`
+
+* Lists all fundis (with filters by skill/location).
+
+#### GET `/fundis/{id}`
+
+* Fetch a specific fundi profile.
+
+### Jobs
+
+#### POST `/jobs`
+
+* Create a new job.
+
+#### GET `/jobs/mine`
+
+* View own job listings.
+
+### Bookings
+
+#### POST `/bookings`
+
+* Send a booking request to a fundi.
+
+#### PUT `/bookings/{id}`
+
+* Update booking status (accept/decline/complete).
+
+### Reviews
+
+#### POST `/reviews`
+
+* Submit review for completed job.
+
+#### GET `/reviews/fundi/{id}`
+
+* View all reviews for a specific fundi.
+
+---
+
+## Features
+
+* Role-based access control (RBAC).
+* Token authentication using Sanctum.
+* Paginated fundi listings.
+* Mobile-first responses (short and simple for WhatsApp/SMS).
+* Can be extended with WhatsApp chatbot integration.
+
+---
+
+**Version:** v1.0 Laravel 12
+**Last Updated:** June 2025
