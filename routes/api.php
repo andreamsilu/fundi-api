@@ -6,6 +6,7 @@ use App\Http\Controllers\FundiController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ServiceCategoryController;
+use App\Http\Controllers\OtpController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,6 +25,7 @@ Route::prefix('v1')->group(function () {
     // Public routes
     Route::post('auth/register', [AuthController::class, 'register']);
     Route::post('auth/login', [AuthController::class, 'login']);
+    Route::post('otp/send', [OtpController::class, 'send']);
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {

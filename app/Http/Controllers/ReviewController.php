@@ -7,13 +7,65 @@ use App\Models\Review;
 use App\Models\User;
 use Illuminate\Http\Request;
 
+/**
+ * @OA\Schema(
+ *     schema="Review",
+ *     required={"booking_id", "customer_id", "fundi_id", "rating", "comment"},
+ *     @OA\Property(property="id", type="integer", format="int64", example=1),
+ *     @OA\Property(property="booking_id", type="integer", format="int64", example=1),
+ *     @OA\Property(property="customer_id", type="integer", format="int64", example=1),
+ *     @OA\Property(property="fundi_id", type="integer", format="int64", example=1),
+ *     @OA\Property(property="rating", type="integer", minimum=1, maximum=5, example=5),
+ *     @OA\Property(property="comment", type="string", example="Excellent service, very professional"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="customer", ref="#/components/schemas/User"),
+ *     @OA\Property(property="booking", ref="#/components/schemas/Booking")
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="ReviewRequest",
+ *     required={"booking_id", "rating", "comment"},
+ *     @OA\Property(property="booking_id", type="integer", format="int64", example=1),
+ *     @OA\Property(property="rating", type="integer", minimum=1, maximum=5, example=5),
+ *     @OA\Property(property="comment", type="string", example="Excellent service, very professional")
+ * )
+ */
 class ReviewController extends Controller
 {
     /**
      * Get all reviews for a fundi.
      *
-     * @param User $fundi
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Get(
+     *     path="/fundis/{fundi}/reviews",
+     *     tags={"Reviews"},
+     *     summary="Get fundi reviews",
+     *     description="Get all reviews for a specific fundi",
+     *     operationId="fundiReviews",
+     *     @OA\Parameter(
+     *         name="fundi",
+     *         in="path",
+     *         description="Fundi ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of fundi reviews",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Review")),
+     *             @OA\Property(property="links", type="object"),
+     *             @OA\Property(property="meta", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="User is not a fundi",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="User is not a fundi")
+     *         )
+     *     )
+     * )
      */
     public function fundiReviews(User $fundi)
     {
@@ -32,8 +84,37 @@ class ReviewController extends Controller
     /**
      * Get all reviews for a fundi.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Get(
+     *     path="/reviews",
+     *     tags={"Reviews"},
+     *     summary="List reviews",
+     *     description="Get a paginated list of reviews for a specific fundi",
+     *     operationId="index",
+     *     @OA\Parameter(
+     *         name="fundi_id",
+     *         in="query",
+     *         description="Fundi ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of reviews",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Review")),
+     *             @OA\Property(property="links", type="object"),
+     *             @OA\Property(property="meta", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The fundi id field is required."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -52,8 +133,48 @@ class ReviewController extends Controller
     /**
      * Create a new review.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Post(
+     *     path="/reviews",
+     *     tags={"Reviews"},
+     *     summary="Create a review",
+     *     description="Create a new review for a completed booking",
+     *     operationId="store",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/ReviewRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Review created successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Review created successfully"),
+     *             @OA\Property(property="review", ref="#/components/schemas/Review")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid request",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Can only review completed bookings")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Fundis cannot create reviews")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
      */
     public function store(Request $request)
     {
@@ -108,8 +229,29 @@ class ReviewController extends Controller
     /**
      * Get a specific review.
      *
-     * @param Review $review
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Get(
+     *     path="/reviews/{id}",
+     *     tags={"Reviews"},
+     *     summary="Get review details",
+     *     description="Get detailed information about a specific review",
+     *     operationId="show",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Review ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Review details",
+     *         @OA\JsonContent(ref="#/components/schemas/Review")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Review not found"
+     *     )
+     * )
      */
     public function show(Review $review)
     {
@@ -121,9 +263,56 @@ class ReviewController extends Controller
     /**
      * Update a review.
      *
-     * @param Review $review
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Post(
+     *     path="/reviews/{id}",
+     *     tags={"Reviews"},
+     *     summary="Update review",
+     *     description="Update an existing review",
+     *     operationId="update",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Review ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"rating", "comment"},
+     *             @OA\Property(property="rating", type="integer", minimum=1, maximum=5, example=5),
+     *             @OA\Property(property="comment", type="string", example="Updated review comment")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Review updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Review updated successfully"),
+     *             @OA\Property(property="review", ref="#/components/schemas/Review")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Only the reviewer can update the review")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Review not found"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
      */
     public function update(Review $review, Request $request)
     {
@@ -157,9 +346,43 @@ class ReviewController extends Controller
     /**
      * Delete a review.
      *
-     * @param Review $review
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Delete(
+     *     path="/reviews/{id}",
+     *     tags={"Reviews"},
+     *     summary="Delete review",
+     *     description="Delete a review",
+     *     operationId="destroy",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Review ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Review deleted successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Review deleted successfully")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Only the reviewer can delete the review")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Review not found"
+     *     )
+     * )
      */
     public function destroy(Review $review, Request $request)
     {

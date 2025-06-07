@@ -8,13 +8,64 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * @OA\Schema(
+ *     schema="User",
+ *     required={"name", "phone", "role"},
+ *     @OA\Property(property="id", type="integer", format="int64", example=1),
+ *     @OA\Property(property="name", type="string", example="John Doe"),
+ *     @OA\Property(property="phone", type="string", example="+255123456789"),
+ *     @OA\Property(property="role", type="string", enum={"customer", "fundi", "admin"}, example="customer"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="LoginRequest",
+ *     required={"phone", "password"},
+ *     @OA\Property(property="phone", type="string", example="+255123456789"),
+ *     @OA\Property(property="password", type="string", format="password", example="password123")
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="RegisterRequest",
+ *     required={"name", "phone", "password", "password_confirmation", "role"},
+ *     @OA\Property(property="name", type="string", example="John Doe"),
+ *     @OA\Property(property="phone", type="string", example="+255123456789"),
+ *     @OA\Property(property="password", type="string", format="password", example="password123"),
+ *     @OA\Property(property="password_confirmation", type="string", format="password", example="password123"),
+ *     @OA\Property(property="role", type="string", enum={"customer", "fundi"}, example="customer")
+ * )
+ */
 class AuthController extends Controller
 {
     /**
      * Register a new user.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Post(
+     *     path="/auth/register",
+     *     tags={"Authentication"},
+     *     summary="Register a new user",
+     *     description="Register a new user (customer or fundi) and return authentication token",
+     *     operationId="register",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/RegisterRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="User registered successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Registration successful"),
+     *             @OA\Property(property="user", ref="#/components/schemas/User"),
+     *             @OA\Property(property="token", type="string", example="1|abcdef123456...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
      */
     public function register(Request $request)
     {
@@ -52,9 +103,30 @@ class AuthController extends Controller
     /**
      * Login a user.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     * @throws ValidationException
+     * @OA\Post(
+     *     path="/auth/login",
+     *     tags={"Authentication"},
+     *     summary="Login user",
+     *     description="Login a user and return authentication token",
+     *     operationId="login",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/LoginRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Login successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Login successful"),
+     *             @OA\Property(property="user", ref="#/components/schemas/User"),
+     *             @OA\Property(property="token", type="string", example="1|abcdef123456...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
      */
     public function login(Request $request)
     {
@@ -86,8 +158,25 @@ class AuthController extends Controller
     /**
      * Logout the authenticated user.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Post(
+     *     path="/auth/logout",
+     *     tags={"Authentication"},
+     *     summary="Logout user",
+     *     description="Logout the authenticated user and invalidate the token",
+     *     operationId="logout",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Logout successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Successfully logged out")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
      */
     public function logout(Request $request)
     {
@@ -101,8 +190,25 @@ class AuthController extends Controller
     /**
      * Get the authenticated user.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @OA\Get(
+     *     path="/auth/user",
+     *     tags={"Authentication"},
+     *     summary="Get authenticated user",
+     *     description="Get the currently authenticated user's details",
+     *     operationId="user",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="User details retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="user", ref="#/components/schemas/User")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
      */
     public function user(Request $request)
     {
