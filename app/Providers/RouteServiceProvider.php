@@ -29,9 +29,14 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // In test (or local) environment, register a test rate limiter (with a high limit) to avoid "Rate limiter [api] is not defined" errors.
+        if (app()->environment('testing') || app()->environment('local')) {
+            $this->app['rateLimiter']->for('api', fn () => Limit::perMinute(1000));
+        }
+
         $this->routes(function () {
             Route::middleware('api')
-                 ->prefix('api')
+                 ->prefix('api/v1')
                  ->group(base_path('routes/api.php'));
 
              Route::middleware('web')
