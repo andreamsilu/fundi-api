@@ -7,6 +7,9 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ServiceCategoryController;
 use App\Http\Controllers\OtpController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,7 +31,7 @@ Route::prefix('v1')->group(function () {
     Route::post('otp/send', [OtpController::class, 'send']);
 
     // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
         // Auth routes
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/user', [AuthController::class, 'user']);
@@ -94,5 +97,28 @@ Route::prefix('v1')->group(function () {
             ->middleware('permission:edit own reviews');
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])
             ->middleware('permission:delete own reviews');
+
+        // Notification routes
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('notifications/{notification}', [NotificationController::class, 'destroy']);
+
+        // Chat routes
+        Route::get('chats', [ChatController::class, 'index']);
+        Route::get('chats/{chat}', [ChatController::class, 'show']);
+        Route::post('chats', [ChatController::class, 'store']);
+        Route::post('chats/{chat}/messages', [ChatController::class, 'sendMessage']);
+        Route::post('chats/{chat}/read', [ChatController::class, 'markAsRead']);
+        Route::get('chats/unread-count', [ChatController::class, 'unreadCount']);
+
+        // Payment routes
+        Route::post('payments/initialize', [PaymentController::class, 'initialize']);
+        Route::get('payments/history', [PaymentController::class, 'history']);
+        Route::get('payments/{payment}', [PaymentController::class, 'show']);
     });
+
+    // Webhook route (no auth required)
+    Route::post('webhooks/stripe', [PaymentController::class, 'handleWebhook']);
 }); 
