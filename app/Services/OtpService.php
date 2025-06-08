@@ -83,7 +83,23 @@ class OtpService
      */
     public function hasValidOtp(string $phone): bool
     {
-        return Cache::has($this->getCacheKey($phone));
+        $key = $this->getCacheKey($phone);
+        if (!Cache::has($key)) {
+            return false;
+        }
+
+        $storedData = Cache::get($key);
+        if (!isset($storedData['created_at'])) {
+            return false;
+        }
+
+        // For array driver, check expiry manually
+        if (config('cache.default') === 'array') {
+            $elapsed = now()->timestamp - $storedData['created_at'];
+            return $elapsed < self::DEFAULT_OTP_EXPIRY;
+        }
+
+        return true;
     }
 
     /**
@@ -99,6 +115,19 @@ class OtpService
             return null;
         }
 
+        $storedData = Cache::get($key);
+        if (!isset($storedData['created_at'])) {
+            return null;
+        }
+
+        // For array driver, calculate remaining time manually
+        if (config('cache.default') === 'array') {
+            $elapsed = now()->timestamp - $storedData['created_at'];
+            $remaining = self::DEFAULT_OTP_EXPIRY - $elapsed;
+            return $remaining > 0 ? $remaining : 0;
+        }
+
+        // For other drivers, use the cache TTL
         $ttl = Cache::ttl($key);
         return $ttl > 0 ? $ttl : 0;
     }
