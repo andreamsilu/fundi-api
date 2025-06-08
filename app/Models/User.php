@@ -9,11 +9,12 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -44,7 +45,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'password' => 'hashed',
-        'role' => 'string',
+        'email_verified_at' => 'datetime',
     ];
 
     /**
@@ -85,29 +86,5 @@ class User extends Authenticatable
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class, 'user_id');
-    }
-
-    /**
-     * Check if the user is a fundi.
-     */
-    public function isFundi(): bool
-    {
-        return $this->role === 'fundi';
-    }
-
-    /**
-     * Check if the user is an admin.
-     */
-    public function isAdmin(): bool
-    {
-        return $this->role === 'admin';
-    }
-
-    /**
-     * Check if the user is a customer.
-     */
-    public function isCustomer(): bool
-    {
-        return $this->role === 'customer';
     }
 }

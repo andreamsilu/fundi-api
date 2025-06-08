@@ -36,41 +36,63 @@ Route::prefix('v1')->group(function () {
         // Fundi routes
         Route::get('fundis', [FundiController::class, 'index']);
         Route::get('fundis/{fundi}', [FundiController::class, 'show']);
+        
+        // Fundi profile management (requires fundi role and specific permissions)
         Route::middleware('role:fundi')->group(function () {
-            Route::put('fundi/profile', [FundiController::class, 'updateProfile']);
-            Route::get('fundi/service-categories', [FundiController::class, 'getServiceCategories']);
-            Route::put('fundi/service-categories', [FundiController::class, 'updateServiceCategories']);
+            Route::put('fundi/profile', [FundiController::class, 'updateProfile'])
+                ->middleware('permission:edit own profile');
+            Route::get('fundi/service-categories', [FundiController::class, 'getServiceCategories'])
+                ->middleware('permission:view own profile');
+            Route::put('fundi/service-categories', [FundiController::class, 'updateServiceCategories'])
+                ->middleware('permission:manage service categories');
         });
 
         // Job routes
         Route::get('jobs', [JobController::class, 'index']);
-        Route::post('jobs', [JobController::class, 'store']);
+        Route::post('jobs', [JobController::class, 'store'])
+            ->middleware('permission:create jobs');
         Route::get('jobs/{job}', [JobController::class, 'show']);
-        Route::put('jobs/{job}', [JobController::class, 'update']);
-        Route::post('jobs/{job}/cancel', [JobController::class, 'cancel']);
-        Route::get('jobs/mine', [JobController::class, 'myJobs']);
+        Route::put('jobs/{job}', [JobController::class, 'update'])
+            ->middleware('permission:edit own jobs');
+        Route::post('jobs/{job}/cancel', [JobController::class, 'cancel'])
+            ->middleware('permission:edit own jobs');
+        Route::get('jobs/mine', [JobController::class, 'myJobs'])
+            ->middleware('permission:view own jobs');
 
         // Service Category routes (admin only)
         Route::middleware('role:admin')->group(function () {
-            Route::get('service-categories', [ServiceCategoryController::class, 'index']);
-            Route::post('service-categories', [ServiceCategoryController::class, 'store']);
-            Route::get('service-categories/{category}', [ServiceCategoryController::class, 'show']);
-            Route::put('service-categories/{category}', [ServiceCategoryController::class, 'update']);
-            Route::delete('service-categories/{category}', [ServiceCategoryController::class, 'destroy']);
+            Route::get('service-categories', [ServiceCategoryController::class, 'index'])
+                ->middleware('permission:manage categories');
+            Route::post('service-categories', [ServiceCategoryController::class, 'store'])
+                ->middleware('permission:manage categories');
+            Route::get('service-categories/{category}', [ServiceCategoryController::class, 'show'])
+                ->middleware('permission:manage categories');
+            Route::put('service-categories/{category}', [ServiceCategoryController::class, 'update'])
+                ->middleware('permission:manage categories');
+            Route::delete('service-categories/{category}', [ServiceCategoryController::class, 'destroy'])
+                ->middleware('permission:manage categories');
         });
 
         // Booking routes
-        Route::get('bookings', [BookingController::class, 'index']);
-        Route::post('bookings', [BookingController::class, 'store']);
-        Route::get('bookings/{booking}', [BookingController::class, 'show']);
-        Route::put('bookings/{booking}', [BookingController::class, 'updateStatus']);
-        Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel']);
+        Route::get('bookings', [BookingController::class, 'index'])
+            ->middleware('permission:view bookings');
+        Route::post('bookings', [BookingController::class, 'store'])
+            ->middleware('permission:create bookings');
+        Route::get('bookings/{booking}', [BookingController::class, 'show'])
+            ->middleware('permission:view bookings');
+        Route::put('bookings/{booking}', [BookingController::class, 'updateStatus'])
+            ->middleware('permission:accept bookings|reject bookings|complete bookings');
+        Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel'])
+            ->middleware('permission:cancel bookings|cancel own bookings');
 
         // Review routes
         Route::get('reviews/fundi/{fundi}', [ReviewController::class, 'fundiReviews']);
-        Route::post('reviews', [ReviewController::class, 'store']);
+        Route::post('reviews', [ReviewController::class, 'store'])
+            ->middleware('permission:create reviews');
         Route::get('reviews/{review}', [ReviewController::class, 'show']);
-        Route::put('reviews/{review}', [ReviewController::class, 'update']);
-        Route::delete('reviews/{review}', [ReviewController::class, 'destroy']);
+        Route::put('reviews/{review}', [ReviewController::class, 'update'])
+            ->middleware('permission:edit own reviews');
+        Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])
+            ->middleware('permission:delete own reviews');
     });
 }); 

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 /**
  * @OA\Schema(
@@ -80,11 +81,13 @@ class AuthController extends Controller
             'name' => $request->name,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
         ]);
 
+        // Assign role using spatie/laravel-permission
+        $user->assignRole($request->role);
+
         // If user is a fundi, create an empty fundi profile
-        if ($user->isFundi()) {
+        if ($user->hasRole('fundi')) {
             $user->fundiProfile()->create([
                 'is_available' => false,
                 'rating' => 0,
@@ -95,7 +98,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Registration successful',
-            'user' => $user,
+            'user' => $user->load('roles'),
             'token' => $token,
         ], 201);
     }
