@@ -28,7 +28,6 @@ return new class extends Migration
 
             $table->index(['user_id', 'status']);
             $table->index(['payment_provider', 'payment_provider_id']);
-            $table->index(['payable_type', 'payable_id']);
         });
     }
 
