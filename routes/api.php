@@ -23,6 +23,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// Swagger UI documentation
+Route::get('documentation', function () {
+    return view('swagger-ui');
+});
+
 // API Version 1 Routes
 Route::prefix('v1')->group(function () {
     // Public routes
