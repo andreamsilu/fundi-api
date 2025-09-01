@@ -10,6 +10,7 @@ use App\Http\Controllers\OtpController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\BusinessModelController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -122,6 +123,14 @@ Route::prefix('v1')->group(function () {
         Route::post('payments/initialize', [PaymentController::class, 'initialize']);
         Route::get('payments/history', [PaymentController::class, 'history']);
         Route::get('payments/{payment}', [PaymentController::class, 'show']);
+
+        // Business Model routes
+        Route::get('business-models', [BusinessModelController::class, 'index']);
+        Route::get('business-models/{business_model}', [BusinessModelController::class, 'show']);
+        Route::get('business-models/{business_model}/jobs', [BusinessModelController::class, 'getJobs']);
+        Route::post('business-models/{business_model}/check-compatibility', [BusinessModelController::class, 'checkCompatibility']);
+        Route::post('business-models/{business_model}/calculate-fee', [BusinessModelController::class, 'calculateFee']);
+        Route::get('business-models/dashboard', [BusinessModelController::class, 'dashboard']);
     });
 
     // Webhook route (no auth required)
