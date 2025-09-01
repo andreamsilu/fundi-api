@@ -46,11 +46,11 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Create roles and assign permissions
-        $fundiRole = Role::create(['name' => 'fundi']);
+        $fundiRole = Role::firstOrCreate(['name' => 'fundi']);
         $fundiRole->givePermissionTo([
             'view own profile',
             'edit own profile',
@@ -62,7 +62,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'cancel bookings',
         ]);
 
-        $customerRole = Role::create(['name' => 'customer']);
+        $customerRole = Role::firstOrCreate(['name' => 'customer']);
         $customerRole->givePermissionTo([
             'create jobs',
             'edit own jobs',
@@ -75,7 +75,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete own reviews',
         ]);
 
-        $adminRole = Role::create(['name' => 'admin']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $adminRole->givePermissionTo(Permission::all());
     }
 } 

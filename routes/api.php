@@ -8,7 +8,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ServiceCategoryController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ChatController;
+
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\BusinessModelController;
 use Illuminate\Support\Facades\Route;
@@ -111,13 +111,7 @@ Route::prefix('v1')->group(function () {
         Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
         Route::delete('notifications/{notification}', [NotificationController::class, 'destroy']);
 
-        // Chat routes
-        Route::get('chats', [ChatController::class, 'index']);
-        Route::get('chats/{chat}', [ChatController::class, 'show']);
-        Route::post('chats', [ChatController::class, 'store']);
-        Route::post('chats/{chat}/messages', [ChatController::class, 'sendMessage']);
-        Route::post('chats/{chat}/read', [ChatController::class, 'markAsRead']);
-        Route::get('chats/unread-count', [ChatController::class, 'unreadCount']);
+
 
         // Payment routes
         Route::post('payments/initialize', [PaymentController::class, 'initialize']);

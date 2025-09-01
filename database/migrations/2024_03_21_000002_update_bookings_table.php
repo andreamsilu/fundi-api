@@ -12,28 +12,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bookings', function (Blueprint $table) {
-            // Drop columns that are not in the documentation
-            $table->dropColumn([
-                'proposed_price',
-                'proposal',
-                'accepted_at',
-                'completed_at',
-            ]);
-
-            // Rename job_id column if it references service_jobs
-            if (Schema::hasColumn('bookings', 'service_job_id')) {
-                $table->renameColumn('service_job_id', 'job_id');
+            // Ensure job_id references service_jobs (our domain jobs table)
+            try {
+                $table->dropForeign(['job_id']);
+            } catch (\Throwable $e) {
+                // ignore if foreign doesn't exist yet
             }
-
-            // Update foreign key if needed
-            $table->dropForeign(['job_id']);
             $table->foreign('job_id')
                 ->references('id')
-                ->on('jobs')
+                ->on('service_jobs')
                 ->onDelete('cascade');
 
-            // Add index for better performance
-            $table->index('status');
+            // Ensure index on status exists
+            try {
+                $table->index('status');
+            } catch (\Throwable $e) {
+                // ignore if index already exists
+            }
         });
     }
 

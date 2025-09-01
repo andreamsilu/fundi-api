@@ -49,7 +49,7 @@ class ServiceCategory extends Model
      */
     public function jobs(): HasMany
     {
-        return $this->hasMany(ServiceJob::class, 'category_id');
+        return $this->hasMany(Job::class, 'category_id');
     }
 
     /**

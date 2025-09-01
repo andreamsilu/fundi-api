@@ -127,7 +127,7 @@ class User extends Authenticatable
      */
     public function jobs(): HasMany
     {
-        return $this->hasMany(ServiceJob::class);
+        return $this->hasMany(Job::class);
     }
 
     /**

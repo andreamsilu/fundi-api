@@ -12,6 +12,11 @@ class Job extends Model
     use HasFactory;
 
     /**
+     * Explicitly map to service_jobs table.
+     */
+    protected $table = 'service_jobs';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
