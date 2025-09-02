@@ -24,9 +24,8 @@ use Illuminate\Support\Facades\Route;
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
+| These are API routes that use token-based authentication via Laravel Sanctum.
+| All routes in this file are automatically assigned to the "api" middleware group.
 |
 */
 
@@ -37,6 +36,16 @@ Route::get('documentation', function () {
 
 // API Version 1 Routes
 Route::prefix('v1')->group(function () {
+    // CORS test route
+    Route::get('cors-test', function () {
+        return response()->json([
+            'message' => 'CORS is working!',
+            'timestamp' => now()->toISOString(),
+            'origin' => request()->header('Origin'),
+            'method' => request()->method(),
+        ]);
+    });
+
     // Public routes
     Route::post('auth/register', [AuthController::class, 'register']);
     Route::post('auth/login', [AuthController::class, 'login']);

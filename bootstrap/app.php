@@ -8,7 +8,6 @@ use App\Http\Kernel;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
     )
@@ -41,14 +40,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'security.headers' => \App\Http\Middleware\SecurityHeaders::class,
         ]);
 
-        // Web middleware group (minimal for API-only app)
-        $middleware->group('web', [
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
-        ]);
-
-        // API middleware group
+        // API middleware group only - no web middleware, completely stateless
         $middleware->group('api', [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:60,1',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             'sanitize.input',
