@@ -13,7 +13,7 @@ class BusinessModelConfigSeeder extends Seeder
         BusinessModelConfig::updateOrCreate(
             ['business_model' => 'c2c'],
             [
-                'allowed_client_roles' => ['client'],
+                'allowed_client_roles' => ['customer'],
                 'allowed_provider_roles' => ['fundi'],
                 'allowed_client_types' => ['individual'],
                 'allowed_provider_types' => ['individual'],
@@ -61,7 +61,7 @@ class BusinessModelConfigSeeder extends Seeder
         BusinessModelConfig::updateOrCreate(
             ['business_model' => 'b2c'],
             [
-                'allowed_client_roles' => ['client'],
+                'allowed_client_roles' => ['customer'],
                 'allowed_provider_roles' => ['businessProvider'],
                 'allowed_client_types' => ['individual'],
                 'allowed_provider_types' => ['business', 'enterprise'],
@@ -119,7 +119,7 @@ class BusinessModelConfigSeeder extends Seeder
         BusinessModelConfig::updateOrCreate(
             ['business_model' => 'c2b'],
             [
-                'allowed_client_roles' => ['businessClient'],
+                'allowed_client_roles' => ['businessCustomer'],
                 'allowed_provider_roles' => ['fundi'],
                 'allowed_client_types' => ['business', 'enterprise', 'government', 'nonprofit'],
                 'allowed_provider_types' => ['individual'],
@@ -178,7 +178,7 @@ class BusinessModelConfigSeeder extends Seeder
         BusinessModelConfig::updateOrCreate(
             ['business_model' => 'b2b'],
             [
-                'allowed_client_roles' => ['businessClient'],
+                'allowed_client_roles' => ['businessCustomer'],
                 'allowed_provider_roles' => ['businessProvider'],
                 'allowed_client_types' => ['business', 'enterprise', 'government', 'nonprofit'],
                 'allowed_provider_types' => ['business', 'enterprise'],

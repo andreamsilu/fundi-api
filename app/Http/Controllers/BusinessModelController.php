@@ -150,8 +150,8 @@ class BusinessModelController extends Controller
         $requirements = [];
         $missingRequirements = [];
 
-        if ($participationType === 'client') {
-            $compatible = $user->canBeClientInBusinessModel($businessModel);
+        if ($participationType === 'customer') {
+            $compatible = $user->canBeCustomerInBusinessModel($businessModel);
             $message = $compatible 
                 ? "User can be a client in this business model" 
                 : "User cannot be a client in this business model";

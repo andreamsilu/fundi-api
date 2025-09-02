@@ -16,7 +16,7 @@ class ReviewFactory extends Factory
         $booking = Booking::factory();
         return [
             'booking_id' => $booking,
-            'user_id' => User::factory()->client(),
+            'user_id' => User::factory()->customer(),
             'fundi_id' => User::factory()->fundi(),
             'rating' => $this->faker->numberBetween(3, 5),
             'comment' => $this->faker->sentence(12),

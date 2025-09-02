@@ -23,48 +23,36 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
         ]);
 
-        // Register all middleware aliases
+        // Register middleware aliases (API-focused)
         $middleware->alias([
-            // Core Laravel middleware
+            // Core Laravel middleware for API
             'auth' => \App\Http\Middleware\Authenticate::class,
             'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
-            'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
             'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
             'can' => \Illuminate\Auth\Middleware\Authorize::class,
-            'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-            'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
-            'signed' => \App\Http\Middleware\ValidateSignature::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
-            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
             
-            // Custom middleware
-            'role' => \App\Http\Middleware\CheckRole::class,
-            'permission' => \App\Http\Middleware\CheckPermission::class,
+            // Custom API middleware
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'roles' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'sanitize.input' => \App\Http\Middleware\SanitizeInput::class,
-            'force.https' => \App\Http\Middleware\ForceHttps::class,
             'security.headers' => \App\Http\Middleware\SecurityHeaders::class,
         ]);
 
-        // Web middleware group
+        // Web middleware group (minimal for API-only app)
         $middleware->group('web', [
-            \App\Http\Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\ForceHttps::class,
-            \App\Http\Middleware\SecurityHeaders::class,
         ]);
 
         // API middleware group
         $middleware->group('api', [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            'throttle:api',
+            'throttle:60,1',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\SanitizeInput::class,
-            \App\Http\Middleware\SecurityHeaders::class,
-            \App\Http\Middleware\ForceHttps::class,
+            'sanitize.input',
+            'security.headers',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

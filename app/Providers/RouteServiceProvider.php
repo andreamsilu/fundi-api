@@ -34,13 +34,14 @@ class RouteServiceProvider extends ServiceProvider
             $this->app['rateLimiter']->for('api', fn () => Limit::perMinute(1000));
         }
 
-        $this->routes(function () {
-            Route::middleware('api')
-                 ->prefix('api/v1')
-                 ->group(base_path('routes/api.php'));
+        // Routes are now configured in bootstrap/app.php
+        // $this->routes(function () {
+        //     Route::middleware('api')
+        //          ->prefix('api/v1')
+        //          ->group(base_path('routes/api.php'));
 
-             Route::middleware('web')
-                  ->group(base_path('routes/web.php'));
-        });
+        //      Route::middleware('web')
+        //           ->group(base_path('routes/web.php'));
+        // });
     }
 } 

@@ -1,0 +1,235 @@
+{
+  "info": {
+    "_postman_id": "a6a8c1e7-3f6f-4ce9-9e8a-6a7ff6f28b11",
+    "name": "Fundi API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection for Fundi API (multi-business-model + demo data)."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "UAC - System Management",
+      "item": [
+        { "name": "List Roles", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/roles", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles"] } } },
+        { "name": "Create Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/roles", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles"] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"new_role\",\n  \"description\": \"A new role description\",\n  \"permissions\": [\"manage users\", \"view bookings\"]\n}" } } },
+        { "name": "Create Customer Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/roles", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles"] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"customer\",\n  \"description\": \"Individual customer role for service seekers\",\n  \"permissions\": [\"create jobs\", \"edit own profile\", \"view own jobs\", \"cancel own jobs\"]\n}" } } },
+        { "name": "Create Business Customer Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/roles", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles"] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"businessCustomer\",\n  \"description\": \"Business customer role for business service seekers\",\n  \"permissions\": [\"create jobs\", \"edit own profile\", \"view own jobs\", \"cancel own jobs\", \"manage business profile\", \"view business analytics\"]\n}" } } },
+        { "name": "Show Role", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/roles/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles","1"] } } },
+        { "name": "Update Role", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/roles/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles","1"] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"updated_role\",\n  \"description\": \"Updated role description\"\n}" } } },
+        { "name": "Delete Role", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/v1/uac/roles/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles","1"] } } },
+        { "name": "Role Statistics", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/roles-statistics", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles-statistics"] } } },
+        { "name": "Attach Permission to Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/roles/1/attach-permission", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles","1","attach-permission"] }, "body": { "mode": "raw", "raw": "{\n  \"permission\": \"manage roles\"\n}" } } },
+        { "name": "Detach Permission from Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/roles/1/detach-permission", "host": ["{{base_url}}"], "path": ["api","v1","uac","roles","1","detach-permission"] }, "body": { "mode": "raw", "raw": "{\n  \"permission\": \"manage roles\"\n}" } } }
+      ]
+    },
+    {
+      "name": "UAC - Permissions",
+      "item": [
+        { "name": "List Permissions", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/permissions", "host": ["{{base_url}}"], "path": ["api","v1","uac","permissions"] } } },
+        { "name": "Create Permission", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/permissions", "host": ["{{base_url}}"], "path": ["api","v1","uac","permissions"] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"new_permission\",\n  \"description\": \"A new permission description\"\n}" } } },
+        { "name": "Show Permission", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/permissions/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","permissions","1"] } } },
+        { "name": "Update Permission", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/permissions/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","permissions","1"] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"updated_permission\",\n  \"description\": \"Updated permission description\"\n}" } } },
+        { "name": "Delete Permission", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/v1/uac/permissions/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","permissions","1"] } } },
+        { "name": "Permission Statistics", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/permissions-statistics", "host": ["{{base_url}}"], "path": ["api","v1","uac","permissions-statistics"] } } },
+        { "name": "Search Permissions", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/permissions-search?query=manage", "host": ["{{base_url}}"], "path": ["api","v1","uac","permissions-search"] }, "query": [{"key":"query","value":"manage"}] } }
+      ]
+    },
+    {
+      "name": "UAC - User Role Management",
+      "item": [
+        { "name": "List Users with Roles", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-roles", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles"] } } },
+        { "name": "Show User Roles", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-roles/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles","1"] } } },
+        { "name": "Assign Role to User", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-roles/1/assign-role", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles","1","assign-role"] }, "body": { "mode": "raw", "raw": "{\n  \"role\": \"fundi\"\n}" } } },
+        { "name": "Assign Customer Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-roles/1/assign-role", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles","1","assign-role"] }, "body": { "mode": "raw", "raw": "{\n  \"role\": \"customer\"\n}" } } },
+        { "name": "Assign Business Customer Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-roles/1/assign-role", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles","1","assign-role"] }, "body": { "mode": "raw", "raw": "{\n  \"role\": \"businessCustomer\"\n}" } } },
+        { "name": "Revoke Role from User", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-roles/1/revoke-role", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles","1","revoke-role"] }, "body": { "mode": "raw", "raw": "{\n  \"role\": \"fundi\"\n}" } } },
+        { "name": "Sync User Roles", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-roles/1/sync-roles", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles","1","sync-roles"] }, "body": { "mode": "raw", "raw": "{\n  \"roles\": [\"customer\", \"fundi\"]\n}" } } },
+        { "name": "Get Users by Role", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-roles-by-role/fundi", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles-by-role","fundi"] } } },
+        { "name": "Get Users by Role (customer)", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-roles-by-role/customer", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles-by-role","customer"] } } },
+        { "name": "Get Users by Role (businessCustomer)", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-roles-by-role/businessCustomer", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles-by-role","businessCustomer"] } } },
+        { "name": "User Role Statistics", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-roles-statistics", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-roles-statistics"] } } }
+      ]
+    },
+    {
+      "name": "UAC - User Permission Management",
+      "item": [
+        { "name": "List Users with Permissions", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions"] } } },
+        { "name": "Show User Permissions", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions","1"] } } },
+        { "name": "Give Permission to User", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions/1/give-permission", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions","1","give-permission"] }, "body": { "mode": "raw", "raw": "{\n  \"permission\": \"manage users\"\n}" } } },
+        { "name": "Revoke Permission from User", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions/1/revoke-permission", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions","1","revoke-permission"] }, "body": { "mode": "raw", "raw": "{\n  \"permission\": \"manage users\"\n}" } } },
+        { "name": "Sync User Permissions", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions/1/sync-permissions", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions","1","sync-permissions"] }, "body": { "mode": "raw", "raw": "{\n  \"permissions\": [\"create jobs\", \"edit own profile\"]\n}" } } },
+        { "name": "Sync Customer Permissions", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions/1/sync-permissions", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions","1","sync-permissions"] }, "body": { "mode": "raw", "raw": "{\n  \"permissions\": [\"create jobs\", \"edit own profile\", \"view own jobs\", \"cancel own jobs\"]\n}" } } },
+        { "name": "Sync Business Customer Permissions", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions/1/sync-permissions", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions","1","sync-permissions"] }, "body": { "mode": "raw", "raw": "{\n  \"permissions\": [\"create jobs\", \"edit own profile\", \"view own jobs\", \"cancel own jobs\", \"manage business profile\", \"view business analytics\"]\n}" } } },
+        { "name": "Get Effective Permissions", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions/1/effective", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions","1","effective"] } } },
+        { "name": "Get Users by Permission", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions-by-permission/create_jobs", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions-by-permission","create_jobs"] } } },
+        { "name": "User Permission Statistics", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions-statistics", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions-statistics"] } } },
+        { "name": "Check User Permission", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/user-permissions/1/check", "host": ["{{base_url}}"], "path": ["api","v1","uac","user-permissions","1","check"] }, "body": { "mode": "raw", "raw": "{\n  \"permission\": \"create jobs\"\n}" } } }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        { "name": "List Users", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/users?role=fundi&search=john", "host": ["{{base_url}}"], "path": ["api","v1","users"], "query": [{"key":"role","value":"fundi"},{"key":"search","value":"john"}] } } },
+        { "name": "Show User", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/users/1", "host": ["{{base_url}}"], "path": ["api","v1","users","1"] } } },
+        { "name": "Create User", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/users", "host": ["{{base_url}}"], "path": ["api","v1","users"] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Doe\",\n  \"phone\": \"+256700123456\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"fundi\",\n  \"user_type\": \"individual\"\n}" } } },
+        { "name": "Update User", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/users/1", "host": ["{{base_url}}"], "path": ["api","v1","uac","users","1"] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Smith\",\n  \"role\": \"customer\",\n  \"is_verified\": true\n}" } } },
+        { "name": "Delete User", "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/v1/users/1", "host": ["{{base_url}}"], "path": ["api","v1","users","1"] } } },
+        { "name": "Toggle User Status", "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/users/1/toggle-status", "host": ["{{base_url}}"], "path": ["api","v1","users","1","toggle-status"] } } },
+        { "name": "Verify User", "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/users/1/verify", "host": ["{{base_url}}"], "path": ["api","v1","users","1","verify"] } } }
+      ]
+    },
+    {
+      "name": "User Role Switching",
+      "item": [
+        { "name": "Get Available Roles", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/available-roles", "host": ["{{base_url}}"], "path": ["api","v1","uac","available-roles"] } } },
+        { "name": "Switch Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/switch-role", "host": ["{{base_url}}"], "path": ["api","v1","uac","switch-role"] }, "body": { "mode": "raw", "raw": "{\n  \"role\": \"fundi\"\n}" } } },
+        { "name": "Switch to Customer Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/switch-role", "host": ["{{base_url}}"], "path": ["api","v1","uac","switch-role"] }, "body": { "mode": "raw", "raw": "{\n  \"role\": \"customer\"\n}" } } },
+        { "name": "Switch to Business Customer Role", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/uac/switch-role", "host": ["{{base_url}}"], "path": ["api","v1","uac","switch-role"] }, "body": { "mode": "raw", "raw": "{\n  \"role\": \"businessCustomer\"\n}" } } },
+        { "name": "Get Profile Status", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/profile-status", "host": ["{{base_url}}"], "path": ["api","v1","uac","profile-status"] } } },
+        { "name": "Get Role Statistics", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/uac/role-statistics", "host": ["{{base_url}}"], "path": ["api","v1","uac","role-statistics"] } } }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{base_url}}/api/v1/auth/login", "host": ["{{base_url}}"], "path": ["api","v1","auth","login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+10000000001\",\n  \"password\": \"password\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch(e){}",
+                  "if (json.token) { pm.environment.set('token', json.token); pm.collectionVariables.set('token', json.token); }",
+                  "pm.test('Login success', function(){ pm.expect(pm.response.code).to.be.oneOf([200,201]); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/auth/logout", "host": ["{{base_url}}"], "path": ["api","v1","auth","logout"] } }
+        },
+        {
+          "name": "Me",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/auth/user", "host": ["{{base_url}}"], "path": ["api","v1","auth","user"] } }
+        }
+      ]
+    },
+    {
+      "name": "Business Models",
+      "item": [
+        { "name": "List Models", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/business-models", "host": ["{{base_url}}"], "path": ["api","v1","business-models"] } } },
+        { "name": "Get Config (c2c)", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/business-models/c2c", "host": ["{{base_url}}"], "path": ["api","v1","business-models","c2c"] } } },
+        { "name": "Dashboard", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/business-models/dashboard", "host": ["{{base_url}}"], "path": ["api","v1","business-models","dashboard"] } } },
+        { "name": "Jobs by Model (b2b)", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/business-models/b2b/jobs?urgency=high", "host": ["{{base_url}}"], "path": ["api","v1","business-models","b2b","jobs"], "query": [{"key":"urgency","value":"high"}] } } },
+        { "name": "Check Compatibility (as customer)", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/business-models/c2c/check-compatibility", "host": ["{{base_url}}"], "path": ["api","v1","business-models","c2c","check-compatibility"] }, "body": { "mode": "raw", "raw": "{\n  \"participation_type\": \"customer\"\n}" } } },
+        { "name": "Calculate Fee (c2b)", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{base_url}}/api/v1/business-models/c2b/calculate-fee", "host": ["{{base_url}}"], "path": ["api","v1","business-models","c2b","calculate-fee"] }, "body": { "mode": "raw", "raw": "{\n  \"amount\": 1000\n}" } } }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        { "name": "List Jobs", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/jobs", "host": ["{{base_url}}"], "path": ["api","v1","jobs"] } } },
+        {
+          "name": "Create Job",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{base_url}}/api/v1/jobs", "host": ["{{base_url}}"], "path": ["api","v1","jobs"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Home Plumbing Repair\",\n  \"description\": \"Leaking pipe under sink\",\n  \"detailed_description\": \"Kitchen sink pipe leak...\",\n  \"location\": \"123 Main St\",\n  \"category_id\": 1,\n  \"business_model\": \"c2c\",\n  \"job_type\": \"homeRepair\",\n  \"payment_type\": \"fixed\",\n  \"fixed_amount\": 150,\n  \"urgency\": \"high\"\n}"
+            }
+          }
+        },
+        { "name": "My Jobs", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/jobs/mine", "host": ["{{base_url}}"], "path": ["api","v1","jobs","mine"] } } }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        { "name": "List Bookings", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/bookings", "host": ["{{base_url}}"], "path": ["api","v1","bookings"] } } },
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{base_url}}/api/v1/bookings", "host": ["{{base_url}}"], "path": ["api","v1","bookings"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_id\": 1,\n  \"fundi_id\": 2\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{base_url}}/api/v1/reviews", "host": ["{{base_url}}"], "path": ["api","v1","reviews"] },
+            "body": { "mode": "raw", "raw": "{\n  \"booking_id\": 1,\n  \"rating\": 5,\n  \"comment\": \"Great work!\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "List Notifications", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/notifications", "host": ["{{base_url}}"], "path": ["api","v1","notifications"] } } },
+        { "name": "Unread Count", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/notifications/unread-count", "host": ["{{base_url}}"], "path": ["api","v1","notifications","unread-count"] } } }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Initialize Mobile Money Payment",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{base_url}}/api/v1/payments/initialize", "host": ["{{base_url}}"], "path": ["api","v1","payments","initialize"] },
+            "body": { "mode": "raw", "raw": "{\n  \"payable_type\": \"booking\",\n  \"payable_id\": 1,\n  \"payment_method\": \"mobile_money\",\n  \"currency\": \"USD\",\n  \"phone\": \"+256700000000\"\n}" }
+          }
+        },
+        { "name": "Payment History", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/payments/history", "host": ["{{base_url}}"], "path": ["api","v1","payments","history"] } } }
+      ]
+    },
+    {
+      "name": "Service Categories (Admin)",
+      "item": [
+        { "name": "List Categories", "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/service-categories", "host": ["{{base_url}}"], "path": ["api","v1","service-categories"] } } }
+      ]
+    }
+  ]
+}

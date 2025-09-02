@@ -24,7 +24,7 @@ class JobFactory extends Factory
         $paymentType = $this->faker->randomElement(['fixed','hourly','daily','milestone','negotiable']);
 
         return [
-            'user_id' => User::factory()->client(),
+            'user_id' => User::factory()->customer(),
             'title' => $this->faker->sentence(4),
             'description' => $this->faker->paragraph(),
             'detailed_description' => $this->faker->paragraphs(2, true),
@@ -47,7 +47,7 @@ class JobFactory extends Factory
             'fixed_amount' => $paymentType === 'fixed' ? $this->faker->randomFloat(2, 50, 5000) : null,
             'hourly_rate' => $paymentType === 'hourly' ? $this->faker->randomFloat(2, 5, 150) : null,
             'daily_rate' => $paymentType === 'daily' ? $this->faker->randomFloat(2, 50, 800) : null,
-            'accepted_payment_methods' => $this->faker->randomElements(['cash','bank_transfer','credit_card','mobile_money','invoice'], rand(1,3)),
+            'accepted_payment_methods' => $this->faker->randomElements(['cash','bank_transfer','mobile_money','invoice'], rand(1,3)),
             'payment_schedule' => $this->faker->randomElement(['immediate','net7','net15','net30','net60','milestone','completion']),
             'requires_contract' => $this->faker->boolean(40),
             'requires_invoice' => $this->faker->boolean(40),

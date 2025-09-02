@@ -6,17 +6,12 @@ use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
-use Stripe\Stripe;
-use Stripe\PaymentIntent;
 
 class PaymentService
 {
-    protected $stripeSecretKey;
-
     public function __construct()
     {
-        $this->stripeSecretKey = config('services.stripe.secret');
-        Stripe::setApiKey($this->stripeSecretKey);
+        // No third-party SDK initialization required for mobile money stub
     }
 
     /**
@@ -44,7 +39,7 @@ class PaymentService
             'currency' => $currency,
             'status' => 'pending',
             'payment_method' => $paymentMethod,
-            'payment_provider' => 'stripe',
+            'payment_provider' => 'mobile_money',
             'metadata' => $metadata,
             'payable_type' => get_class($payable),
             'payable_id' => $payable->id,
@@ -52,40 +47,40 @@ class PaymentService
     }
 
     /**
-     * Create a payment intent with Stripe
+     * Initiate a mobile money payment (stubbed provider integration).
      *
      * @param Payment $payment
+     * @param string|null $payerPhone
      * @return array
      */
-    public function createStripePaymentIntent(Payment $payment): array
+    public function initiateMobileMoney(Payment $payment, ?string $payerPhone = null): array
     {
         try {
-            $paymentIntent = PaymentIntent::create([
-                'amount' => $payment->getAmountInSmallestUnit(),
-                'currency' => strtolower($payment->currency),
-                'payment_method_types' => ['card'],
-                'metadata' => [
-                    'payment_id' => $payment->id,
-                    'user_id' => $payment->user_id,
-                    'payable_type' => $payment->payable_type,
-                    'payable_id' => $payment->payable_id,
-                ],
-            ]);
+            // Simulate sending a mobile money payment request to a provider
+            $reference = 'mm_' . bin2hex(random_bytes(8));
+
+            $providerResponse = [
+                'reference' => $reference,
+                'status' => 'initiated',
+                'phone' => $payerPhone,
+                'amount' => $payment->amount,
+                'currency' => $payment->currency,
+            ];
 
             $payment->update([
-                'payment_provider_id' => $paymentIntent->id,
-                'payment_provider_status' => $paymentIntent->status,
-                'payment_provider_response' => $paymentIntent->toArray(),
+                'payment_provider_id' => $reference,
+                'payment_provider_status' => 'initiated',
+                'payment_provider_response' => $providerResponse,
             ]);
 
             return [
-                'client_secret' => $paymentIntent->client_secret,
-                'payment_intent_id' => $paymentIntent->id,
+                'payment_reference' => $reference,
+                'status' => 'initiated',
             ];
         } catch (\Exception $e) {
-            Log::error('Failed to create Stripe payment intent: ' . $e->getMessage(), [
+            Log::error('Failed to initiate mobile money payment: ' . $e->getMessage(), [
                 'payment_id' => $payment->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -97,10 +92,10 @@ class PaymentService
      * @param array $payload
      * @return void
      */
-    public function handleStripeWebhook(array $payload): void
+    public function handleMobileMoneyCallback(array $payload): void
     {
-        $event = $payload['type'] ?? null;
-        $data = $payload['data']['object'] ?? null;
+        $event = $payload['event'] ?? null; // e.g., payment.completed, payment.failed
+        $data = $payload['data'] ?? null;
 
         if (!$event || !$data) {
             return;
@@ -108,15 +103,15 @@ class PaymentService
 
         try {
             switch ($event) {
-                case 'payment_intent.succeeded':
+                case 'payment.completed':
                     $this->handleSuccessfulPayment($data);
                     break;
-                case 'payment_intent.payment_failed':
+                case 'payment.failed':
                     $this->handleFailedPayment($data);
                     break;
             }
         } catch (\Exception $e) {
-            Log::error('Failed to handle Stripe webhook: ' . $e->getMessage(), [
+            Log::error('Failed to handle Mobile Money callback: ' . $e->getMessage(), [
                 'event' => $event,
                 'error' => $e->getMessage()
             ]);
@@ -132,7 +127,7 @@ class PaymentService
      */
     protected function handleSuccessfulPayment(array $data): void
     {
-        $payment = Payment::where('payment_provider_id', $data['id'])->first();
+        $payment = Payment::where('payment_provider_id', $data['id'] ?? ($data['reference'] ?? null))->first();
 
         if (!$payment) {
             Log::warning('Payment not found for successful payment intent', [

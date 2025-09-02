@@ -30,7 +30,8 @@ class PaymentController extends Controller
         $request->validate([
             'payable_type' => 'required|in:booking,job',
             'payable_id' => 'required|integer',
-            'payment_method' => 'required|in:card',
+            'payment_method' => 'required|in:mobile_money',
+            'phone' => 'required|string',
             'currency' => 'required|string|size:3',
         ]);
 
@@ -51,8 +52,8 @@ class PaymentController extends Controller
                 $payable
             );
 
-            // Create payment intent
-            $paymentIntent = $this->paymentService->createStripePaymentIntent($payment);
+            // Initiate mobile money payment
+            $init = $this->paymentService->initiateMobileMoney($payment, $request->string('phone'));
 
             return response()->json([
                 'message' => 'Payment initialized successfully',
@@ -60,8 +61,8 @@ class PaymentController extends Controller
                     'payment_id' => $payment->id,
                     'amount' => $payment->amount,
                     'currency' => $payment->currency,
-                    'client_secret' => $paymentIntent['client_secret'],
-                    'payment_intent_id' => $paymentIntent['payment_intent_id'],
+                    'payment_reference' => $init['payment_reference'],
+                    'status' => $init['status'],
                 ]
             ]);
         } catch (\Exception $e) {
@@ -84,7 +85,7 @@ class PaymentController extends Controller
         $payload = $request->all();
 
         try {
-            $this->paymentService->handleStripeWebhook($payload);
+            $this->paymentService->handleMobileMoneyCallback($payload);
             return response()->json(['message' => 'Webhook handled successfully']);
         } catch (\Exception $e) {
             Log::error('Failed to handle webhook: ' . $e->getMessage(), [
@@ -105,7 +106,7 @@ class PaymentController extends Controller
     {
         $filters = $request->validate([
             'status' => 'nullable|in:pending,completed,failed',
-            'payment_method' => 'nullable|in:card',
+            'payment_method' => 'nullable|in:mobile_money',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'per_page' => 'nullable|integer|min:1|max:100',

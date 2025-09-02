@@ -32,8 +32,8 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'role' => $this->faker->randomElement([
-                $isBusiness ? 'businessClient' : 'client',
+            'current_role' => $this->faker->randomElement([
+                $isBusiness ? 'businessCustomer' : 'customer',
                 $isBusiness ? 'businessProvider' : 'fundi',
             ]),
             'user_type' => $isBusiness ? $this->faker->randomElement(['business','enterprise']) : 'individual',
@@ -59,7 +59,7 @@ class UserFactory extends Factory
             'year_established' => $this->faker->numberBetween(1980, (int)date('Y')),
             'license_number' => strtoupper(Str::random(8)),
             'certifications' => $this->faker->randomElements(['ISO9001','OSHA','CISA','CISSP','PMP'], rand(0,3)),
-            'payment_methods' => $this->faker->randomElements(['cash','bank_transfer','credit_card','mobile_money','invoice'], rand(2,4)),
+            'payment_methods' => $this->faker->randomElements(['cash','bank_transfer','mobile_money','invoice'], rand(2,4)),
             'average_project_value' => $this->faker->randomFloat(2, 1000, 50000),
             'completed_projects' => $this->faker->numberBetween(0, 500),
         ] : [
@@ -97,18 +97,18 @@ class UserFactory extends Factory
     public function fundi(): static
     {
         return $this->state(fn () => [
-            'role' => 'fundi',
+            'current_role' => 'fundi',
             'user_type' => 'individual',
         ]);
     }
 
     /**
-     * Client state.
+     * Customer state.
      */
-    public function client(): static
+    public function customer(): static
     {
         return $this->state(fn () => [
-            'role' => 'client',
+            'current_role' => 'customer',
             'user_type' => 'individual',
         ]);
     }
@@ -119,18 +119,18 @@ class UserFactory extends Factory
     public function businessProvider(): static
     {
         return $this->state(fn () => [
-            'role' => 'businessProvider',
+            'current_role' => 'businessProvider',
             'user_type' => 'business',
         ]);
     }
 
     /**
-     * Business Client state.
+     * Business Customer state.
      */
-    public function businessClient(): static
+    public function businessCustomer(): static
     {
         return $this->state(fn () => [
-            'role' => 'businessClient',
+            'current_role' => 'businessCustomer',
             'user_type' => 'business',
         ]);
     }

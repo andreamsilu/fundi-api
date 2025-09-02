@@ -25,7 +25,7 @@ class User extends Authenticatable
         'name',
         'phone',
         'password',
-        'role',
+        'current_role',
         'user_type',
         'business_name',
         'business_type',
@@ -69,6 +69,7 @@ class User extends Authenticatable
         'email_verified_at',
         'phone_verified_at',
         'profile_completed_at',
+        'last_role_switch',
     ];
 
     /**
@@ -91,6 +92,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'profile_completed_at' => 'datetime',
+        'last_role_switch' => 'datetime',
         'services_offered' => 'array',
         'industries' => 'array',
         'certifications' => 'array',
@@ -155,9 +157,44 @@ class User extends Authenticatable
     }
 
     /**
+     * Get user's rating as a fundi (service provider).
+     */
+    public function getFundiRatingAttribute(): float
+    {
+        $reviews = $this->fundiReviews()->whereNotNull('rating');
+        if ($reviews->count() === 0) {
+            return 0.0;
+        }
+        return round($reviews->avg('rating'), 1);
+    }
+
+    /**
+     * Get user's rating as a client (service requester).
+     */
+    public function getClientRatingAttribute(): float
+    {
+        $reviews = $this->reviews()->whereNotNull('rating');
+        if ($reviews->count() === 0) {
+            return 0.0;
+        }
+        return round($reviews->avg('rating'), 1);
+    }
+
+    /**
+     * Get user's current role rating.
+     */
+    public function getCurrentRoleRatingAttribute(): float
+    {
+        if ($this->isActingAsFundi()) {
+            return $this->fundi_rating;
+        }
+        return $this->client_rating;
+    }
+
+    /**
      * User role constants
      */
-    const ROLE_CLIENT = 'client';
+    const ROLE_CUSTOMER = 'customer';
     const ROLE_FUNDI = 'fundi';
     const ROLE_BUSINESS_CLIENT = 'businessClient';
     const ROLE_BUSINESS_PROVIDER = 'businessProvider';
@@ -175,35 +212,77 @@ class User extends Authenticatable
     const TYPE_NONPROFIT = 'nonprofit';
 
     /**
-     * Check if user is a fundi (individual service provider).
+     * Check if user can act as a fundi (service provider).
      */
-    public function isFundi(): bool
+    public function canActAsFundi(): bool
     {
-        return $this->role === self::ROLE_FUNDI;
+        return $this->hasAnyRole([self::ROLE_FUNDI, self::ROLE_BUSINESS_PROVIDER]);
     }
 
     /**
-     * Check if user is a client (individual seeking services).
+     * Check if user can act as a customer (service requester).
      */
-    public function isClient(): bool
+    public function canActAsCustomer(): bool
     {
-        return $this->role === self::ROLE_CLIENT;
+        return $this->hasAnyRole([self::ROLE_CUSTOMER, self::ROLE_BUSINESS_CLIENT]);
     }
 
     /**
-     * Check if user is a business client.
+     * Check if user is currently acting as a fundi.
      */
-    public function isBusinessClient(): bool
+    public function isActingAsFundi(): bool
     {
-        return $this->role === self::ROLE_BUSINESS_CLIENT;
+        return session('current_role') === 'fundi' && $this->canActAsFundi();
     }
 
     /**
-     * Check if user is a business provider.
+     * Check if user is currently acting as a customer.
      */
-    public function isBusinessProvider(): bool
+    public function isActingAsCustomer(): bool
     {
-        return $this->role === self::ROLE_BUSINESS_PROVIDER;
+        return session('current_role') === 'customer' && $this->canActAsCustomer();
+    }
+
+    /**
+     * Get user's available roles for switching.
+     */
+    public function getAvailableRoles(): array
+    {
+        $roles = [];
+        
+        if ($this->canActAsCustomer()) {
+            $roles[] = 'customer';
+        }
+        
+        if ($this->canActAsFundi()) {
+            $roles[] = 'fundi';
+        }
+        
+        return $roles;
+    }
+
+    /**
+     * Switch user's current active role.
+     */
+    public function switchRole(string $role): bool
+    {
+        if (in_array($role, $this->getAvailableRoles())) {
+            session(['current_role' => $role]);
+            $this->update([
+                'current_role' => $role,
+                'last_role_switch' => now()
+            ]);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Get user's current active role.
+     */
+    public function getCurrentRole(): ?string
+    {
+        return session('current_role') ?? $this->current_role ?? $this->getPrimaryRoleAttribute();
     }
 
     /**
@@ -228,16 +307,17 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can be a client in a specific business model.
+     * Check if user can be a customer in a specific business model.
      */
-    public function canBeClientInBusinessModel(string $businessModel): bool
+    public function canBeCustomerInBusinessModel(string $businessModel): bool
     {
         $config = BusinessModelConfig::getByModel($businessModel);
         if (!$config) {
             return false;
         }
 
-        return $config->canBeClient($this->role) && 
+        // Check if user can act as customer and has compatible user type
+        return $this->canActAsCustomer() && 
                $config->canBeClientType($this->user_type);
     }
 
@@ -251,8 +331,25 @@ class User extends Authenticatable
             return false;
         }
 
-        return $config->canBeProvider($this->role) && 
+        // Check if user can act as provider and has compatible user type
+        return $this->canActAsFundi() && 
                $config->canBeProviderType($this->user_type);
+    }
+
+    /**
+     * Check if user can currently post jobs (acting as customer).
+     */
+    public function canPostJobs(): bool
+    {
+        return $this->isActingAsCustomer() && $this->can('create jobs');
+    }
+
+    /**
+     * Check if user can currently accept jobs (acting as fundi).
+     */
+    public function canAcceptJobs(): bool
+    {
+        return $this->isActingAsFundi() && $this->can('accept jobs');
     }
 
     /**
@@ -284,25 +381,49 @@ class User extends Authenticatable
     }
 
     /**
-     * Get required profile fields based on user type and role.
+     * Get required profile fields based on user type and current role.
      */
     private function getRequiredProfileFields(): array
     {
         $baseFields = ['name', 'phone', 'email', 'address', 'city', 'state', 'country'];
 
         if ($this->isBusiness()) {
-            return array_merge($baseFields, [
+            $baseFields = array_merge($baseFields, [
                 'business_name', 'business_type', 'business_description'
             ]);
         }
 
-        if ($this->isFundi()) {
-            return array_merge($baseFields, [
+        // Add role-specific fields based on current active role
+        if ($this->isActingAsFundi()) {
+            $baseFields = array_merge($baseFields, [
                 'bio', 'skills', 'hourly_rate', 'years_experience'
+            ]);
+        }
+        
+        if ($this->isActingAsCustomer()) {
+            $baseFields = array_merge($baseFields, [
+                'address', 'city', 'state', 'country'
             ]);
         }
 
         return $baseFields;
+    }
+
+    /**
+     * Get profile completion percentage for current role.
+     */
+    public function getCurrentRoleProfileCompletion(): int
+    {
+        $requiredFields = $this->getRequiredProfileFields();
+        $completedFields = 0;
+
+        foreach ($requiredFields as $field) {
+            if (!empty($this->$field)) {
+                $completedFields++;
+            }
+        }
+
+        return (int) round(($completedFields / count($requiredFields)) * 100);
     }
 
     /**
@@ -311,6 +432,57 @@ class User extends Authenticatable
     public function markProfileAsCompleted(): void
     {
         $this->update(['profile_completed_at' => now()]);
+    }
+
+    /**
+     * Get user's primary role.
+     */
+    public function getPrimaryRoleAttribute(): ?string
+    {
+        return $this->roles->first()?->name;
+    }
+
+    /**
+     * Check if user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole(self::ROLE_ADMIN);
+    }
+
+    /**
+     * Check if user is a moderator.
+     */
+    public function isModerator(): bool
+    {
+        return $this->hasRole(self::ROLE_MODERATOR);
+    }
+
+    /**
+     * Check if user is support staff.
+     */
+    public function isSupport(): bool
+    {
+        return $this->hasRole(self::ROLE_SUPPORT);
+    }
+
+    /**
+     * Check if user can manage other users.
+     */
+    public function canManageUsers(): bool
+    {
+        return $this->hasAnyRole([self::ROLE_ADMIN, self::ROLE_MODERATOR]) &&
+               $this->can('manage users');
+    }
+
+    /**
+     * Check if user can manage roles and permissions.
+     */
+    public function canManageUAC(): bool
+    {
+        return $this->hasRole(self::ROLE_ADMIN) &&
+               $this->can('manage roles') &&
+               $this->can('manage permissions');
     }
 
     /**
@@ -342,6 +514,37 @@ class User extends Authenticatable
      */
     public function scopeByRole($query, string $role)
     {
-        return $query->where('role', $role);
+        return $query->role($role);
+    }
+
+    /**
+     * Get user's statistics for both roles.
+     */
+    public function getRoleStatistics(): array
+    {
+        return [
+            'fundi' => [
+                'rating' => $this->fundi_rating,
+                'reviews_count' => $this->fundiReviews()->count(),
+                'completed_jobs' => $this->fundiBookings()->where('status', 'completed')->count(),
+                'total_earnings' => $this->fundiBookings()->where('status', 'completed')->sum('amount'),
+            ],
+            'customer' => [
+                'rating' => $this->customer_rating,
+                'reviews_count' => $this->reviews()->count(),
+                'posted_jobs' => $this->jobs()->count(),
+                'completed_jobs' => $this->jobs()->whereHas('bookings', function($q) {
+                    $q->where('status', 'completed');
+                })->count(),
+            ]
+        ];
+    }
+
+    /**
+     * Check if user has completed profile for current role.
+     */
+    public function hasCompletedCurrentRoleProfile(): bool
+    {
+        return $this->getCurrentRoleProfileCompletion() >= 80;
     }
 }

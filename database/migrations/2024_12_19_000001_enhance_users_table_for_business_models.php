@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // Enhanced role enum with new business roles
             $table->enum('role', [
-                'client',           // C2C, B2C: Individual seeking services
+                'customer',           // C2C, B2C: Individual seeking services
                 'fundi',            // C2C, C2B: Individual providing services
-                'businessClient',   // B2B, B2C: Business seeking services
+                'businessCustomer',   // B2B, B2C: Business seeking services
                 'businessProvider', // B2B, C2B: Business providing services
                 'admin',            // Platform administrator
                 'moderator',        // Platform moderator
                 'support'           // Customer support
-            ])->default('client')->change();
+            ])->default('customer')->change();
             
             // New user type field
             $table->enum('user_type', [
