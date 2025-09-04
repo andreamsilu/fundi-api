@@ -28,6 +28,12 @@ return [
 
     ],
 
+    /*
+     * The model that uses the HasRoles trait. This should be the model that
+     * represents your users in the application.
+     */
+    'user_model' => App\Models\User::class,
+
     'table_names' => [
 
         /*

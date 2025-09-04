@@ -83,6 +83,23 @@ class User extends Authenticatable
     ];
 
     /**
+     * The guard name for the model.
+     *
+     * @var string
+     */
+    protected $guard_name = 'web';
+
+    /**
+     * Get the guard name for the model.
+     *
+     * @return string
+     */
+    public function getGuardName(): string
+    {
+        return $this->guard_name ?? 'web';
+    }
+
+    /**
      * The attributes that should be cast.
      *
      * @var array<string, string>

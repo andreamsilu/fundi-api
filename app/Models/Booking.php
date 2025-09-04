@@ -19,6 +19,19 @@ class Booking extends Model
     protected $fillable = [
         'job_id',
         'fundi_id',
+        'customer_id',
+        'service_job_id',
+        'description',
+        'scheduled_date',
+        'scheduled_time',
+        'location',
+        'notes',
+        'estimated_duration',
+        'actual_duration',
+        'estimated_cost',
+        'actual_cost',
+        'payment_status',
+        'payment_method',
         'status',
     ];
 
@@ -29,6 +42,10 @@ class Booking extends Model
      */
     protected $casts = [
         'status' => 'string',
+        'scheduled_date' => 'date',
+        'scheduled_time' => 'datetime:H:i',
+        'estimated_cost' => 'decimal:2',
+        'actual_cost' => 'decimal:2',
     ];
 
     /**
@@ -45,6 +62,22 @@ class Booking extends Model
     public function fundi(): BelongsTo
     {
         return $this->belongsTo(User::class, 'fundi_id');
+    }
+
+    /**
+     * Get the customer who created this booking.
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    /**
+     * Get the service job that this booking is for.
+     */
+    public function serviceJob(): BelongsTo
+    {
+        return $this->belongsTo(Job::class, 'service_job_id');
     }
 
     /**

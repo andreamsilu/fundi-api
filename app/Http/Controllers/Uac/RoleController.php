@@ -14,7 +14,12 @@ class RoleController extends Controller
      */
     public function index(): JsonResponse
     {
-        $roles = Role::with('permissions')->orderBy('name')->get();
+        $roles = Role::with(['permissions'])->orderBy('name')->get();
+        
+        // Add permissions_count to each role
+        $roles->each(function ($role) {
+            $role->permissions_count = $role->permissions->count();
+        });
         
         return response()->json([
             'data' => $roles,
@@ -58,8 +63,11 @@ class RoleController extends Controller
      */
     public function show(Role $role): JsonResponse
     {
+        $role = $role->load(['permissions']);
+        $role->permissions_count = $role->permissions->count();
+        
         return response()->json([
-            'data' => $role->load('permissions'),
+            'data' => $role,
             'meta' => [
                 'message' => 'Role retrieved successfully'
             ]
@@ -75,7 +83,7 @@ class RoleController extends Controller
             'name' => 'required|string|max:100|unique:roles,name,' . $role->id,
             'description' => 'nullable|string|max:255',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|exists:permissions,name'
+            'permissions.*' => 'integer|exists:permissions,id'
         ]);
 
         $role->update([
@@ -88,9 +96,12 @@ class RoleController extends Controller
             $role->syncPermissions($data['permissions']);
         }
 
+        $role = $role->load(['permissions']);
+        $role->permissions_count = $role->permissions->count();
+        
         return response()->json([
             'message' => 'Role updated successfully',
-            'data' => $role->load('permissions')
+            'data' => $role
         ]);
     }
 

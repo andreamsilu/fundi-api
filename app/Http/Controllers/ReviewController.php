@@ -69,7 +69,7 @@ class ReviewController extends Controller
      */
     public function fundiReviews(User $fundi)
     {
-        if (!$fundi->isFundi()) {
+        if (!$fundi->canActAsFundi()) {
             return response()->json(['message' => 'User is not a fundi'], 404);
         }
 
@@ -180,7 +180,7 @@ class ReviewController extends Controller
     {
         $user = $request->user();
         
-        if ($user->isFundi()) {
+        if ($user->canActAsFundi()) {
             return response()->json(['message' => 'Fundis cannot create reviews'], 403);
         }
 

@@ -57,17 +57,17 @@ class BusinessModelController extends Controller
      * Get a specific business model configuration.
      *
      * @OA\Get(
-     *     path="/business-models/{business_model}",
+     *     path="/business-models/{id}",
      *     tags={"Business Models"},
      *     summary="Get business model configuration",
      *     description="Get configuration for a specific business model",
      *     operationId="show",
      *     @OA\Parameter(
-     *         name="business_model",
+     *         name="id",
      *         in="path",
-     *         description="Business model type (c2c, b2c, c2b, b2b)",
+     *         description="Business model ID",
      *         required=true,
-     *         @OA\Schema(type="string", enum={"c2c", "b2c", "c2b", "b2b"})
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(
      *         response=200,
@@ -80,9 +80,9 @@ class BusinessModelController extends Controller
      *     )
      * )
      */
-    public function show(string $businessModel)
+    public function show($id)
     {
-        $config = BusinessModelConfig::getByModel($businessModel);
+        $config = BusinessModelConfig::find($id);
 
         if (!$config) {
             return response()->json(['message' => 'Business model not found'], 404);
@@ -135,12 +135,12 @@ class BusinessModelController extends Controller
      *     )
      * )
      */
-    public function checkCompatibility(Request $request, string $businessModel)
+    public function checkCompatibility(Request $request, $id)
     {
         $user = $request->user();
         $participationType = $request->input('participation_type');
 
-        $config = BusinessModelConfig::getByModel($businessModel);
+        $config = BusinessModelConfig::find($id);
         if (!$config) {
             return response()->json(['message' => 'Business model not found'], 404);
         }
@@ -151,12 +151,12 @@ class BusinessModelController extends Controller
         $missingRequirements = [];
 
         if ($participationType === 'customer') {
-            $compatible = $user->canBeCustomerInBusinessModel($businessModel);
+            $compatible = $user->canBeCustomerInBusinessModel($config->business_model);
             $message = $compatible 
                 ? "User can be a client in this business model" 
                 : "User cannot be a client in this business model";
         } elseif ($participationType === 'provider') {
-            $compatible = $user->canBeProviderInBusinessModel($businessModel);
+            $compatible = $user->canBeProviderInBusinessModel($config->business_model);
             $message = $compatible 
                 ? "User can be a provider in this business model" 
                 : "User cannot be a provider in this business model";
@@ -259,14 +259,14 @@ class BusinessModelController extends Controller
      *     )
      * )
      */
-    public function getJobs(Request $request, string $businessModel)
+    public function getJobs(Request $request, $id)
     {
-        $config = BusinessModelConfig::getByModel($businessModel);
+        $config = BusinessModelConfig::find($id);
         if (!$config) {
             return response()->json(['message' => 'Business model not found'], 404);
         }
 
-        $query = Job::byBusinessModel($businessModel)
+        $query = Job::byBusinessModel($config->business_model)
             ->with(['customer', 'category'])
             ->where('status', 'open');
 
@@ -390,10 +390,10 @@ class BusinessModelController extends Controller
      *     )
      * )
      */
-    public function calculateFee(Request $request, string $businessModel)
+    public function calculateFee(Request $request, $id)
     {
         $amount = $request->input('amount');
-        $config = BusinessModelConfig::getByModel($businessModel);
+        $config = BusinessModelConfig::find($id);
 
         if (!$config) {
             return response()->json(['message' => 'Business model not found'], 404);
@@ -423,5 +423,124 @@ class BusinessModelController extends Controller
                 'fixed_rate' => $config->platform_fee_fixed
             ]
         ]);
+    }
+
+    /**
+     * Create a new business model configuration.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'business_model' => 'required|string|in:c2c,b2c,c2b,b2b',
+            'allowed_client_roles' => 'required|array|min:1',
+            'allowed_client_roles.*' => 'string|in:individual,business,freelancer,contractor,enterprise',
+            'allowed_provider_roles' => 'required|array|min:1',
+            'allowed_provider_roles.*' => 'string|in:individual,business,freelancer,contractor,enterprise',
+            'supported_job_types' => 'required|array|min:1',
+            'supported_job_types.*' => 'string|in:consultation,development,design,marketing,writing,translation,data_entry,customer_support,sales',
+            'supported_payment_methods' => 'required|array|min:1',
+            'supported_payment_methods.*' => 'string|in:credit_card,debit_card,bank_transfer,paypal,stripe,crypto,cash,check',
+            'minimum_transaction_amount' => 'required|numeric|min:0',
+            'maximum_transaction_amount' => 'required|numeric|gt:minimum_transaction_amount',
+            'platform_fee_percentage' => 'required|numeric|min:0|max:100',
+            'platform_fee_fixed' => 'required|numeric|min:0',
+            'requires_contract' => 'boolean',
+            'requires_invoice' => 'boolean',
+            'requires_insurance' => 'boolean',
+            'requires_license' => 'boolean',
+            'requires_background_check' => 'boolean',
+            'description' => 'nullable|string|max:500',
+            'is_active' => 'boolean',
+            'is_featured' => 'boolean'
+        ]);
+
+        // Check if business model already exists
+        $existingModel = BusinessModelConfig::where('business_model', $request->business_model)->first();
+        if ($existingModel) {
+            return response()->json([
+                'message' => 'Business model already exists',
+                'existing_model' => $existingModel
+            ], 422);
+        }
+
+        $businessModel = BusinessModelConfig::create($request->all());
+
+        return response()->json($businessModel, 201);
+    }
+
+    /**
+     * Update a business model configuration.
+     */
+    public function update(Request $request, $id)
+    {
+        $businessModel = BusinessModelConfig::find($id);
+        
+        if (!$businessModel) {
+            return response()->json(['message' => 'Business model not found'], 404);
+        }
+
+        $request->validate([
+            'business_model' => 'sometimes|string|in:c2c,b2c,c2b,b2b',
+            'allowed_client_roles' => 'sometimes|array|min:1',
+            'allowed_client_roles.*' => 'string|in:individual,business,freelancer,contractor,enterprise',
+            'allowed_provider_roles' => 'sometimes|array|min:1',
+            'allowed_provider_roles.*' => 'string|in:individual,business,freelancer,contractor,enterprise',
+            'supported_job_types' => 'sometimes|array|min:1',
+            'supported_job_types.*' => 'string|in:consultation,development,design,marketing,writing,translation,data_entry,customer_support,sales',
+            'supported_payment_methods' => 'sometimes|array|min:1',
+            'supported_payment_methods.*' => 'string|in:credit_card,debit_card,bank_transfer,paypal,stripe,crypto,cash,check',
+            'minimum_transaction_amount' => 'sometimes|numeric|min:0',
+            'maximum_transaction_amount' => 'sometimes|numeric|gt:minimum_transaction_amount',
+            'platform_fee_percentage' => 'sometimes|numeric|min:0|max:100',
+            'platform_fee_fixed' => 'sometimes|numeric|min:0',
+            'requires_contract' => 'sometimes|boolean',
+            'requires_invoice' => 'sometimes|boolean',
+            'requires_insurance' => 'sometimes|boolean',
+            'requires_license' => 'sometimes|boolean',
+            'requires_background_check' => 'sometimes|boolean',
+            'description' => 'sometimes|nullable|string|max:500',
+            'is_active' => 'sometimes|boolean',
+            'is_featured' => 'sometimes|boolean'
+        ]);
+
+        $businessModel->update($request->all());
+
+        return response()->json($businessModel);
+    }
+
+    /**
+     * Delete a business model configuration.
+     */
+    public function destroy($id)
+    {
+        $businessModel = BusinessModelConfig::find($id);
+        
+        if (!$businessModel) {
+            return response()->json(['message' => 'Business model not found'], 404);
+        }
+
+        $businessModel->delete();
+
+        return response()->json(['message' => 'Business model deleted successfully']);
+    }
+
+    /**
+     * Toggle business model status.
+     */
+    public function toggleStatus(Request $request, $id)
+    {
+        $request->validate([
+            'is_active' => 'required|boolean'
+        ]);
+
+        $businessModel = BusinessModelConfig::find($id);
+        
+        if (!$businessModel) {
+            return response()->json(['message' => 'Business model not found'], 404);
+        }
+
+        $businessModel->update(['is_active' => $request->is_active]);
+
+        return response()->json($businessModel);
     }
 } 

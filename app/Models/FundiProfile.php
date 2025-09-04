@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FundiProfile extends Model
 {
@@ -54,6 +55,14 @@ class FundiProfile extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(ServiceCategory::class, 'category_id');
+    }
+
+    /**
+     * Get the service categories that the fundi can handle.
+     */
+    public function serviceCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(ServiceCategory::class, 'fundi_profile_service_category');
     }
 
     /**

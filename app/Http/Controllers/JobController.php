@@ -33,7 +33,22 @@ class JobController extends Controller
 
         $jobs = $query->latest()->paginate(10);
 
-        return response()->json($jobs);
+        // Transform Laravel pagination to expected frontend format
+        return response()->json([
+            'data' => $jobs->items(),
+            'meta' => [
+                'current_page' => $jobs->currentPage(),
+                'last_page' => $jobs->lastPage(),
+                'per_page' => $jobs->perPage(),
+                'total' => $jobs->total(),
+            ],
+            'links' => [
+                'first' => $jobs->url(1),
+                'last' => $jobs->url($jobs->lastPage()),
+                'prev' => $jobs->previousPageUrl(),
+                'next' => $jobs->nextPageUrl(),
+            ]
+        ]);
     }
 
     /**
@@ -46,7 +61,7 @@ class JobController extends Controller
     {
         $user = $request->user();
         
-        if ($user->isFundi()) {
+        if ($user->canActAsFundi()) {
             return response()->json(['message' => 'Fundis cannot create jobs'], 403);
         }
 
@@ -247,7 +262,7 @@ class JobController extends Controller
     {
         $user = $request->user();
         
-        if ($user->isFundi()) {
+        if ($user->canActAsFundi()) {
             return response()->json(['message' => 'This endpoint is for customers only'], 403);
         }
 
@@ -256,6 +271,21 @@ class JobController extends Controller
             ->latest()
             ->paginate(10);
 
-        return response()->json($jobs);
+        // Transform Laravel pagination to expected frontend format
+        return response()->json([
+            'data' => $jobs->items(),
+            'meta' => [
+                'current_page' => $jobs->currentPage(),
+                'last_page' => $jobs->lastPage(),
+                'per_page' => $jobs->perPage(),
+                'total' => $jobs->total(),
+            ],
+            'links' => [
+                'first' => $jobs->url(1),
+                'last' => $jobs->url($jobs->lastPage()),
+                'prev' => $jobs->previousPageUrl(),
+                'next' => $jobs->nextPageUrl(),
+            ]
+        ]);
     }
 } 

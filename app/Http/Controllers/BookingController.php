@@ -68,7 +68,10 @@ class BookingController extends Controller
         $user = $request->user();
         $query = Booking::query();
 
-        if ($user->isFundi()) {
+        // Admin users can see all bookings
+        if ($user->hasRole('admin')) {
+            // No additional filtering for admin users
+        } elseif ($user->canActAsFundi()) {
             $query->where('fundi_id', $user->id);
         } else {
             $query->where('customer_id', $user->id);
@@ -78,7 +81,22 @@ class BookingController extends Controller
             ->latest()
             ->paginate(10);
 
-        return response()->json($bookings);
+        // Transform Laravel pagination to expected frontend format
+        return response()->json([
+            'data' => $bookings->items(),
+            'meta' => [
+                'current_page' => $bookings->currentPage(),
+                'last_page' => $bookings->lastPage(),
+                'per_page' => $bookings->perPage(),
+                'total' => $bookings->total(),
+            ],
+            'links' => [
+                'first' => $bookings->url(1),
+                'last' => $bookings->url($bookings->lastPage()),
+                'prev' => $bookings->previousPageUrl(),
+                'next' => $bookings->nextPageUrl(),
+            ]
+        ]);
     }
 
     /**
@@ -138,7 +156,7 @@ class BookingController extends Controller
     {
         $user = $request->user();
         
-        if ($user->isFundi()) {
+        if ($user->canActAsFundi()) {
             return response()->json(['message' => 'Fundis cannot create bookings'], 403);
         }
 
@@ -232,7 +250,10 @@ class BookingController extends Controller
     {
         $user = $request->user();
 
-        if ($user->id !== $booking->customer_id && $user->id !== $booking->fundi_id) {
+        // Admin users can see all bookings
+        if ($user->hasRole('admin')) {
+            // No additional filtering for admin users
+        } elseif ($user->id !== $booking->customer_id && $user->id !== $booking->fundi_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

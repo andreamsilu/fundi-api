@@ -19,7 +19,7 @@ class FundiController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::where('role', 'fundi')
+        $query = User::role(['fundi', 'businessProvider'])
             ->with(['fundiProfile', 'fundiProfile.serviceCategories'])
             ->when($request->category_id, function ($query, $categoryId) {
                 return $query->whereHas('fundiProfile.serviceCategories', function ($q) use ($categoryId) {
@@ -43,7 +43,7 @@ class FundiController extends Controller
      */
     public function show(User $fundi)
     {
-        if (!$fundi->isFundi()) {
+        if (!$fundi->canActAsFundi()) {
             return response()->json(['message' => 'User is not a fundi'], 404);
         }
 
@@ -62,7 +62,7 @@ class FundiController extends Controller
     {
         $user = $request->user();
         
-        if (!$user->isFundi()) {
+        if (!$user->canActAsFundi()) {
             return response()->json(['message' => 'User is not a fundi'], 403);
         }
 
@@ -114,7 +114,7 @@ class FundiController extends Controller
     {
         $user = $request->user();
         
-        if (!$user->isFundi()) {
+        if (!$user->canActAsFundi()) {
             return response()->json(['message' => 'User is not a fundi'], 403);
         }
 
@@ -133,7 +133,7 @@ class FundiController extends Controller
     {
         $user = $request->user();
         
-        if (!$user->isFundi()) {
+        if (!$user->canActAsFundi()) {
             return response()->json(['message' => 'User is not a fundi'], 403);
         }
 

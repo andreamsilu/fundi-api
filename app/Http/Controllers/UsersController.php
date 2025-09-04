@@ -61,7 +61,7 @@ class UsersController extends Controller
             'email' => 'nullable|email|unique:users',
             'phone' => 'required|string|unique:users',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:admin,fundi,client,businessClient,businessProvider,moderator,support',
+            'role' => 'nullable|in:admin,fundi,client,businessClient,businessProvider,moderator,support',
             'user_type' => 'required|in:individual,business,enterprise,government,nonprofit',
             'is_verified' => 'boolean',
             'is_available' => 'boolean',
@@ -69,10 +69,16 @@ class UsersController extends Controller
 
         $data['password'] = Hash::make($data['password']);
         
+        // Remove role from user data before creating user
+        $role = $data['role'] ?? null;
+        unset($data['role']);
+        
         $user = User::create($data);
         
-        // Assign role
-        $user->assignRole($data['role']);
+        // Assign role if provided
+        if ($role) {
+            $user->assignRole($role);
+        }
         
         return response()->json([
             'message' => 'User created successfully',

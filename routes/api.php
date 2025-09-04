@@ -46,6 +46,7 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
+
     // Public routes
     Route::post('auth/register', [AuthController::class, 'register']);
     Route::post('auth/login', [AuthController::class, 'login']);
@@ -235,10 +236,14 @@ Route::prefix('v1')->group(function () {
 
         // Business Model routes
         Route::get('business-models', [BusinessModelController::class, 'index']);
-        Route::get('business-models/{business_model}', [BusinessModelController::class, 'show']);
-        Route::get('business-models/{business_model}/jobs', [BusinessModelController::class, 'getJobs']);
-        Route::post('business-models/{business_model}/check-compatibility', [BusinessModelController::class, 'checkCompatibility']);
-        Route::post('business-models/{business_model}/calculate-fee', [BusinessModelController::class, 'calculateFee']);
+        Route::post('business-models', [BusinessModelController::class, 'store']);
+        Route::get('business-models/{id}', [BusinessModelController::class, 'show']);
+        Route::put('business-models/{id}', [BusinessModelController::class, 'update']);
+        Route::delete('business-models/{id}', [BusinessModelController::class, 'destroy']);
+        Route::patch('business-models/{id}/status', [BusinessModelController::class, 'toggleStatus']);
+        Route::get('business-models/{id}/jobs', [BusinessModelController::class, 'getJobs']);
+        Route::post('business-models/{id}/check-compatibility', [BusinessModelController::class, 'checkCompatibility']);
+        Route::post('business-models/{id}/calculate-fee', [BusinessModelController::class, 'calculateFee']);
         Route::get('business-models/dashboard', [BusinessModelController::class, 'dashboard']);
     });
 
