@@ -231,18 +231,18 @@ Route::prefix('v1')->group(function () {
 
 
 
-        // Payment routes
+        // Payment routes - specific routes first, then parameterized routes
         Route::post('payments/initialize', [PaymentController::class, 'initialize']);
         Route::get('payments/history', [PaymentController::class, 'history']);
-        Route::get('payments/{payment}', [PaymentController::class, 'show']);
-        Route::get('payments', [PaymentController::class, 'getPayments']);
         Route::get('payments/stats', [PaymentController::class, 'getStats']);
         Route::get('payments/analytics', [PaymentController::class, 'getAnalytics']);
+        Route::get('payments/export', [PaymentController::class, 'exportPayments']);
+        Route::get('payments/users/{user}/history', [PaymentController::class, 'getUserPaymentHistory']);
+        Route::get('payments', [PaymentController::class, 'getPayments']);
+        Route::get('payments/{payment}', [PaymentController::class, 'show']);
         Route::patch('payments/{payment}/status', [PaymentController::class, 'updatePaymentStatus']);
         Route::post('payments/{payment}/refund', [PaymentController::class, 'processRefund']);
         Route::post('payments/{payment}/retry', [PaymentController::class, 'retryPayment']);
-        Route::get('payments/export', [PaymentController::class, 'exportPayments']);
-        Route::get('payments/users/{user}/history', [PaymentController::class, 'getUserPaymentHistory']);
 
         // Business Model routes
         Route::get('business-models', [BusinessModelController::class, 'index']);

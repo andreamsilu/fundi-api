@@ -104,23 +104,7 @@ class DemoDataSeeder extends Seeder
                 ]);
             }
 
-            // 8) Payments demo
-            foreach ($bookings->take(10) as $booking) {
-                Payment::create([
-                    'user_id' => $booking->job->customer->id,
-                    'amount' => fake()->randomFloat(2, 50, 1000),
-                    'currency' => 'USD',
-                    'status' => 'completed',
-                    'payment_method' => 'mobile_money',
-                    'payment_provider' => 'mobile_money',
-                    'payment_provider_id' => 'mm_' . substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyz'), 0, 16),
-                    'payment_provider_status' => 'completed',
-                    'payment_provider_response' => ['reference' => 'mm_' . substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyz'), 0, 16)],
-                    'metadata' => ['booking_id' => $booking->id],
-                    'payable_type' => Booking::class,
-                    'payable_id' => $booking->id,
-                ]);
-            }
+            // 8) Payments will be seeded separately by PaymentSeeder
 
             // 9) Update last_role_switch for multi-role users
             $multiRoleUsers->each(function ($user) {

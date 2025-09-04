@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             BusinessModelConfigSeeder::class,
             ServiceCategorySeeder::class,
             DemoDataSeeder::class,
+            PaymentSeeder::class,
         ]);
     }
 }

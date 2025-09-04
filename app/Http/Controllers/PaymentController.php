@@ -351,15 +351,15 @@ class PaymentController extends Controller
                         DB::raw('COUNT(*) as total_payments'),
                         DB::raw('SUM(amount) as total_amount')
                     )
-                    ->with('user:id,name')
                     ->groupBy('user_id')
                     ->orderBy('total_amount', 'desc')
                     ->limit(10)
                     ->get()
                     ->map(function ($payment) {
+                        $user = User::find($payment->user_id);
                         return [
                             'user_id' => $payment->user_id,
-                            'user_name' => $payment->user->name ?? 'Unknown User',
+                            'user_name' => $user->name ?? 'Unknown User',
                             'total_payments' => $payment->total_payments,
                             'total_amount' => $payment->total_amount,
                         ];

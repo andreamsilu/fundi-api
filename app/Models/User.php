@@ -174,6 +174,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the payments made by the user.
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
      * Get user's rating as a fundi (service provider).
      */
     public function getFundiRatingAttribute(): float
