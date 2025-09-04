@@ -11,6 +11,8 @@ use App\Http\Controllers\NotificationController;
 
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\BusinessModelController;
+use App\Http\Controllers\CommunicationsController;
+use App\Http\Controllers\SystemController;
 use App\Http\Controllers\Uac\RoleController;
 use App\Http\Controllers\Uac\PermissionController;
 use App\Http\Controllers\Uac\UserRoleController;
@@ -233,6 +235,14 @@ Route::prefix('v1')->group(function () {
         Route::post('payments/initialize', [PaymentController::class, 'initialize']);
         Route::get('payments/history', [PaymentController::class, 'history']);
         Route::get('payments/{payment}', [PaymentController::class, 'show']);
+        Route::get('payments', [PaymentController::class, 'getPayments']);
+        Route::get('payments/stats', [PaymentController::class, 'getStats']);
+        Route::get('payments/analytics', [PaymentController::class, 'getAnalytics']);
+        Route::patch('payments/{payment}/status', [PaymentController::class, 'updatePaymentStatus']);
+        Route::post('payments/{payment}/refund', [PaymentController::class, 'processRefund']);
+        Route::post('payments/{payment}/retry', [PaymentController::class, 'retryPayment']);
+        Route::get('payments/export', [PaymentController::class, 'exportPayments']);
+        Route::get('payments/users/{user}/history', [PaymentController::class, 'getUserPaymentHistory']);
 
         // Business Model routes
         Route::get('business-models', [BusinessModelController::class, 'index']);
@@ -245,6 +255,27 @@ Route::prefix('v1')->group(function () {
         Route::post('business-models/{id}/check-compatibility', [BusinessModelController::class, 'checkCompatibility']);
         Route::post('business-models/{id}/calculate-fee', [BusinessModelController::class, 'calculateFee']);
         Route::get('business-models/dashboard', [BusinessModelController::class, 'dashboard']);
+
+        // Communications routes
+        Route::get('communications/notifications', [CommunicationsController::class, 'getNotifications']);
+        Route::get('communications/notifications/unread-count', [CommunicationsController::class, 'getUnreadCount']);
+        Route::post('communications/notifications/{notification}/read', [CommunicationsController::class, 'markNotificationAsRead']);
+        Route::post('communications/notifications/read-all', [CommunicationsController::class, 'markAllNotificationsAsRead']);
+        Route::delete('communications/notifications/{notification}', [CommunicationsController::class, 'deleteNotification']);
+        Route::get('communications/stats', [CommunicationsController::class, 'getStats']);
+        Route::post('communications/notifications/bulk-delete', [CommunicationsController::class, 'bulkDeleteNotifications']);
+        Route::get('communications/users/{user}/history', [CommunicationsController::class, 'getUserCommunicationHistory']);
+
+        // System routes
+        Route::get('system/health', [SystemController::class, 'getHealth']);
+        Route::get('system/stats', [SystemController::class, 'getStats']);
+        Route::get('system/logs', [SystemController::class, 'getLogs']);
+        Route::get('system/settings', [SystemController::class, 'getSettings']);
+        Route::put('system/settings/{key}', [SystemController::class, 'updateSetting']);
+        Route::get('system/configuration', [SystemController::class, 'getConfiguration']);
+        Route::post('system/cache/clear', [SystemController::class, 'clearCache']);
+        Route::post('system/services/restart', [SystemController::class, 'restartServices']);
+        Route::get('system/logs/export', [SystemController::class, 'exportLogs']);
     });
 
     // Mobile money callback route (no auth required)
