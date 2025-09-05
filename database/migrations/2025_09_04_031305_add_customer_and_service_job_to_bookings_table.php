@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -54,28 +55,24 @@ return new class extends Migration
         
         // Add indexes for better performance
         Schema::table('bookings', function (Blueprint $table) {
-            try {
+            // Check if indexes exist before creating them
+            $indexes = DB::select("SHOW INDEX FROM bookings");
+            $existingIndexes = collect($indexes)->pluck('Key_name')->toArray();
+            
+            if (!in_array('bookings_customer_id_status_index', $existingIndexes)) {
                 $table->index(['customer_id', 'status']);
-            } catch (\Throwable $e) {
-                // ignore if index already exists
             }
             
-            try {
+            if (!in_array('bookings_fundi_id_status_index', $existingIndexes)) {
                 $table->index(['fundi_id', 'status']);
-            } catch (\Throwable $e) {
-                // ignore if index already exists
             }
             
-            try {
+            if (!in_array('bookings_service_job_id_status_index', $existingIndexes)) {
                 $table->index(['service_job_id', 'status']);
-            } catch (\Throwable $e) {
-                // ignore if index already exists
             }
             
-            try {
+            if (!in_array('bookings_scheduled_date_index', $existingIndexes)) {
                 $table->index('scheduled_date');
-            } catch (\Throwable $e) {
-                // ignore if index already exists
             }
         });
     }
@@ -86,16 +83,20 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('bookings', function (Blueprint $table) {
-            // Drop indexes
+            // Drop foreign key constraints first
+            $table->dropForeign(['customer_id']);
+            $table->dropForeign(['service_job_id']);
+        });
+        
+        Schema::table('bookings', function (Blueprint $table) {
+            // Drop indexes after foreign keys are dropped
             $table->dropIndex(['customer_id', 'status']);
             $table->dropIndex(['fundi_id', 'status']);
             $table->dropIndex(['service_job_id', 'status']);
             $table->dropIndex(['scheduled_date']);
-            
-            // Drop foreign key constraints
-            $table->dropForeign(['customer_id']);
-            $table->dropForeign(['service_job_id']);
-            
+        });
+        
+        Schema::table('bookings', function (Blueprint $table) {
             // Drop columns
             $table->dropColumn([
                 'customer_id',

@@ -17,7 +17,6 @@ class PaymentSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::transaction(function () {
             // Get existing users, jobs, and bookings
             $users = User::all();
             $jobs = Job::all();
@@ -161,7 +160,6 @@ class PaymentSeeder extends Seeder
             Payment::insert($payments);
 
             $this->command->info('Created ' . count($payments) . ' sample payments with TZS currency');
-        });
     }
 
     /**

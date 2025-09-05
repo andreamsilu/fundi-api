@@ -137,8 +137,7 @@ class PaymentController extends Controller
      */
     public function show(string $paymentId): JsonResponse
     {
-        $payment = Auth::user()->payments()
-            ->with('payable')
+        $payment = Payment::with(['user', 'payable'])
             ->findOrFail($paymentId);
 
         return response()->json([
@@ -177,6 +176,33 @@ class PaymentController extends Controller
 
             if ($request->filled('date_to')) {
                 $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            // Apply time filter (only if not using custom date range)
+            if ($request->filled('time_filter') && $request->time_filter !== 'custom') {
+                $timeFilter = $request->time_filter;
+                $now = now();
+                
+                switch ($timeFilter) {
+                    case 'today':
+                        $query->whereDate('created_at', $now->toDateString());
+                        break;
+                    case 'yesterday':
+                        $query->whereDate('created_at', $now->subDay()->toDateString());
+                        break;
+                    case '7days':
+                        $query->where('created_at', '>=', $now->subDays(7));
+                        break;
+                    case '30days':
+                        $query->where('created_at', '>=', $now->subDays(30));
+                        break;
+                    case '6months':
+                        $query->where('created_at', '>=', $now->subMonths(6));
+                        break;
+                    case '1year':
+                        $query->where('created_at', '>=', $now->subYear());
+                        break;
+                }
             }
 
             if ($request->filled('search')) {
@@ -282,8 +308,11 @@ class PaymentController extends Controller
                 'total_payments' => Payment::count(),
                 'total_amount' => Payment::where('status', 'completed')->sum('amount'),
                 'pending_payments' => Payment::where('status', 'pending')->count(),
+                'pending_amount' => Payment::where('status', 'pending')->sum('amount'),
                 'completed_payments' => Payment::where('status', 'completed')->count(),
+                'completed_amount' => Payment::where('status', 'completed')->sum('amount'),
                 'failed_payments' => Payment::where('status', 'failed')->count(),
+                'failed_amount' => Payment::where('status', 'failed')->sum('amount'),
                 'payments_by_method' => Payment::select('payment_method', DB::raw('count(*) as count'))
                     ->groupBy('payment_method')
                     ->pluck('count', 'payment_method')

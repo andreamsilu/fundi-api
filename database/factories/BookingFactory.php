@@ -13,7 +13,7 @@ class BookingFactory extends Factory
 {
     public function definition(): array
     {
-        $status = $this->faker->randomElement(['pending','accepted','declined','completed','cancelled']);
+        $status = $this->faker->randomElement(['pending','accepted','confirmed','in_progress','completed','cancelled','rejected']);
         return [
             'job_id' => Job::factory(),
             'fundi_id' => User::factory()->fundi(),
