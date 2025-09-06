@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Job extends Model
 {
@@ -134,6 +135,33 @@ class Job extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Get the job application fees for this job.
+     */
+    public function applicationFees(): HasMany
+    {
+        return $this->hasMany(JobApplicationFee::class, 'job_id');
+    }
+
+    /**
+     * Get the premium job boosters for this job.
+     */
+    public function premiumBoosters(): HasMany
+    {
+        return $this->hasMany(PremiumJobBooster::class, 'job_id');
+    }
+
+    /**
+     * Get the active premium booster for this job.
+     */
+    public function activeBooster(): HasOne
+    {
+        return $this->hasOne(PremiumJobBooster::class, 'job_id')
+            ->where('status', 'active')
+            ->where('starts_at', '<=', now())
+            ->where('expires_at', '>', now());
     }
 
     /**

@@ -17,7 +17,7 @@ class JobController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Job::with(['customer', 'category'])
+        $query = Job::with(['customer', 'category', 'activeBooster'])
             ->when($request->category_id, function ($query, $categoryId) {
                 return $query->inCategory($categoryId);
             })
@@ -29,13 +29,26 @@ class JobController extends Controller
                     $q->where('title', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%");
                 });
+            })
+            ->when($request->featured, function ($query, $featured) {
+                return $query->where('is_featured', $featured);
             });
 
         $jobs = $query->latest()->paginate(10);
 
+        // Add monetization information to each job
+        $jobsData = $jobs->items();
+        foreach ($jobsData as $job) {
+            // Calculate application fee
+            $monetizationService = app(\App\Services\MonetizationService::class);
+            $job->application_fee = $monetizationService->calculateApplicationFee($job);
+            $job->boost_status = $job->activeBooster ? 'active' : 'none';
+            $job->boost_type = $job->activeBooster?->boost_type;
+        }
+
         // Transform Laravel pagination to expected frontend format
         return response()->json([
-            'data' => $jobs->items(),
+            'data' => $jobsData,
             'meta' => [
                 'current_page' => $jobs->currentPage(),
                 'last_page' => $jobs->lastPage(),
@@ -176,7 +189,13 @@ class JobController extends Controller
      */
     public function show(Job $job)
     {
-        $job->load(['customer', 'category', 'bookings.fundi']);
+        $job->load(['customer', 'category', 'bookings.fundi', 'activeBooster']);
+
+        // Add monetization information
+        $monetizationService = app(\App\Services\MonetizationService::class);
+        $job->application_fee = $monetizationService->calculateApplicationFee($job);
+        $job->boost_status = $job->activeBooster ? 'active' : 'none';
+        $job->boost_type = $job->activeBooster?->boost_type;
 
         return response()->json($job);
     }

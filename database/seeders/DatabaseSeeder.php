@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             BusinessModelConfigSeeder::class,
             ServiceCategorySeeder::class,
+            SubscriptionTierSeeder::class,
             DemoDataSeeder::class,
             PaymentSeeder::class,
         ]);

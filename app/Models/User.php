@@ -182,6 +182,54 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the fundi's subscription.
+     */
+    public function fundiSubscription(): HasOne
+    {
+        return $this->hasOne(FundiSubscription::class);
+    }
+
+    /**
+     * Get the fundi's credits.
+     */
+    public function fundiCredits(): HasOne
+    {
+        return $this->hasOne(FundiCredits::class);
+    }
+
+    /**
+     * Get the fundi's credit transactions.
+     */
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class);
+    }
+
+    /**
+     * Get the fundi's job application fees.
+     */
+    public function jobApplicationFees(): HasMany
+    {
+        return $this->hasMany(JobApplicationFee::class, 'fundi_id');
+    }
+
+    /**
+     * Get the customer's premium job boosters.
+     */
+    public function premiumJobBoosters(): HasMany
+    {
+        return $this->hasMany(PremiumJobBooster::class);
+    }
+
+    /**
+     * Get the revenue tracking records for this user.
+     */
+    public function revenueTracking(): HasMany
+    {
+        return $this->hasMany(RevenueTracking::class);
+    }
+
+    /**
      * Get user's rating as a fundi (service provider).
      */
     public function getFundiRatingAttribute(): float

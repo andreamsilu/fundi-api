@@ -38,6 +38,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'roles' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'sanitize.input' => \App\Http\Middleware\SanitizeInput::class,
             'security.headers' => \App\Http\Middleware\SecurityHeaders::class,
+            'enforce.monetization' => \App\Http\Middleware\EnforceMonetization::class,
+            'protect.customer.contact' => \App\Http\Middleware\ProtectCustomerContact::class,
         ]);
 
         // API middleware group only - no web middleware, completely stateless

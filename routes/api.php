@@ -19,6 +19,11 @@ use App\Http\Controllers\Uac\UserRoleController;
 use App\Http\Controllers\Uac\UserPermissionController;
 use App\Http\Controllers\Uac\UserRoleSwitchingController;
 use App\Http\Controllers\UsersController;
+use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\CreditController;
+use App\Http\Controllers\JobApplicationController;
+use App\Http\Controllers\PremiumJobController;
+use App\Http\Controllers\Admin\RevenueController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -84,7 +89,8 @@ Route::prefix('v1')->group(function () {
 
         // Job routes - role-based access
         Route::get('jobs', [JobController::class, 'index']); // Public viewing
-        Route::get('jobs/{job}', [JobController::class, 'show']); // Public viewing
+        Route::get('jobs/{job}', [JobController::class, 'show'])
+            ->middleware('protect.customer.contact'); // Public viewing with contact protection
         
         // Job management - customers and business customers can create jobs
         Route::middleware('role:customer|businessCustomer')->group(function () {
@@ -265,6 +271,53 @@ Route::prefix('v1')->group(function () {
         Route::get('communications/stats', [CommunicationsController::class, 'getStats']);
         Route::post('communications/notifications/bulk-delete', [CommunicationsController::class, 'bulkDeleteNotifications']);
         Route::get('communications/users/{user}/history', [CommunicationsController::class, 'getUserCommunicationHistory']);
+
+        // Monetization System Routes
+        
+        // Subscription routes - fundis only
+        Route::middleware('role:fundi')->group(function () {
+            Route::get('subscriptions/tiers', [SubscriptionController::class, 'getTiers']);
+            Route::get('subscriptions/current', [SubscriptionController::class, 'getCurrentSubscription']);
+            Route::post('subscriptions/subscribe', [SubscriptionController::class, 'subscribe']);
+            Route::post('subscriptions/cancel', [SubscriptionController::class, 'cancelSubscription']);
+            Route::get('subscriptions/history', [SubscriptionController::class, 'getSubscriptionHistory']);
+        });
+
+        // Credit routes - fundis only
+        Route::middleware('role:fundi')->group(function () {
+            Route::get('credits/balance', [CreditController::class, 'getBalance']);
+            Route::post('credits/purchase', [CreditController::class, 'purchaseCredits']);
+            Route::get('credits/history', [CreditController::class, 'getTransactionHistory']);
+            Route::get('credits/stats', [CreditController::class, 'getUsageStats']);
+        });
+
+        // Job application routes - fundis only
+        Route::middleware('role:fundi')->group(function () {
+            Route::get('jobs/{job}/application/eligibility', [JobApplicationController::class, 'checkApplicationEligibility']);
+            Route::post('jobs/{job}/apply', [JobApplicationController::class, 'applyToJob'])
+                ->middleware('enforce.monetization');
+            Route::get('applications/history', [JobApplicationController::class, 'getApplicationHistory']);
+            Route::get('applications/stats', [JobApplicationController::class, 'getApplicationStats']);
+        });
+
+        // Premium job routes - customers only
+        Route::middleware('role:customer|businessCustomer')->group(function () {
+            Route::post('jobs/{job}/boost', [PremiumJobController::class, 'boostJob']);
+            Route::get('jobs/{job}/boost/fee', [PremiumJobController::class, 'getBoostFee']);
+            Route::get('jobs/boosted', [PremiumJobController::class, 'getBoostedJobs']);
+            Route::post('jobs/boost/{booster}/cancel', [PremiumJobController::class, 'cancelBoost']);
+            Route::get('jobs/boost/stats', [PremiumJobController::class, 'getBoostStats']);
+        });
+
+        // Admin revenue routes - admin only
+        Route::middleware('role:admin')->group(function () {
+            Route::get('admin/revenue/stats', [RevenueController::class, 'getRevenueStats']);
+            Route::get('admin/revenue/business-model', [RevenueController::class, 'getRevenueByBusinessModel']);
+            Route::get('admin/revenue/user', [RevenueController::class, 'getRevenueByUser']);
+            Route::get('admin/revenue/top-users', [RevenueController::class, 'getTopRevenueUsers']);
+            Route::get('admin/revenue/trends', [RevenueController::class, 'getRevenueTrends']);
+            Route::get('admin/revenue/report', [RevenueController::class, 'getDetailedReport']);
+        });
 
         // System routes
         Route::get('system/health', [SystemController::class, 'getHealth']);
