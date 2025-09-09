@@ -15,75 +15,84 @@ class JobApplicationController extends Controller
      */
     public function apply(Request $request, $jobId): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        if (!$user->isFundi()) {
+            if (!$user->isFundi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only fundis can apply for jobs'
+                ], 403);
+            }
+
+            $job = Job::find($jobId);
+
+            if (!$job) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Job not found'
+                ], 404);
+            }
+
+            if ($job->status !== 'open') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Job is not open for applications'
+                ], 400);
+            }
+
+            // Check if fundi already applied
+            $existingApplication = JobApplication::where('job_id', $jobId)
+                ->where('fundi_id', $user->id)
+                ->first();
+
+            if ($existingApplication) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have already applied for this job'
+                ], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'requirements' => 'nullable|string',
+                'budget_breakdown' => 'required|array',
+                'budget_breakdown.materials' => 'required|numeric|min:0',
+                'budget_breakdown.labor' => 'required|numeric|min:0',
+                'budget_breakdown.transport' => 'required|numeric|min:0',
+                'estimated_time' => 'required|integer|min:1',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $application = JobApplication::create([
+                'job_id' => $jobId,
+                'fundi_id' => $user->id,
+                'requirements' => $request->requirements,
+                'budget_breakdown' => $request->budget_breakdown,
+                'estimated_time' => $request->estimated_time,
+            ]);
+
+            $application->load(['fundi.fundiProfile', 'job']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application submitted successfully',
+                'data' => $application
+            ], 201);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only fundis can apply for jobs'
-            ], 403);
+                'message' => 'Failed to submit application',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while submitting application'
+            ], 500);
         }
-
-        $job = Job::find($jobId);
-
-        if (!$job) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Job not found'
-            ], 404);
-        }
-
-        if ($job->status !== 'open') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Job is not open for applications'
-            ], 400);
-        }
-
-        // Check if fundi already applied
-        $existingApplication = JobApplication::where('job_id', $jobId)
-            ->where('fundi_id', $user->id)
-            ->first();
-
-        if ($existingApplication) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You have already applied for this job'
-            ], 400);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'requirements' => 'nullable|string',
-            'budget_breakdown' => 'required|array',
-            'budget_breakdown.materials' => 'required|numeric|min:0',
-            'budget_breakdown.labor' => 'required|numeric|min:0',
-            'budget_breakdown.transport' => 'required|numeric|min:0',
-            'estimated_time' => 'required|integer|min:1',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $application = JobApplication::create([
-            'job_id' => $jobId,
-            'fundi_id' => $user->id,
-            'requirements' => $request->requirements,
-            'budget_breakdown' => $request->budget_breakdown,
-            'estimated_time' => $request->estimated_time,
-        ]);
-
-        $application->load(['fundi.fundiProfile', 'job']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Application submitted successfully',
-            'data' => $application
-        ], 201);
     }
 
     /**
@@ -91,33 +100,43 @@ class JobApplicationController extends Controller
      */
     public function getJobApplications(Request $request, $jobId): JsonResponse
     {
-        $user = $request->user();
-        $job = Job::find($jobId);
+        try {
+            $user = $request->user();
+            $job = Job::find($jobId);
 
-        if (!$job) {
+            if (!$job) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Job not found'
+                ], 404);
+            }
+
+            // Only job owner or admin can view applications
+            if ($job->customer_id !== $user->id && !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized to view applications'
+                ], 403);
+            }
+
+            $applications = JobApplication::with(['fundi.fundiProfile'])
+                ->where('job_id', $jobId)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Applications retrieved successfully',
+                'data' => $applications
+            ]);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Job not found'
-            ], 404);
+                'message' => 'Failed to retrieve applications',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving applications'
+            ], 500);
         }
-
-        // Only job owner or admin can view applications
-        if ($job->customer_id !== $user->id && !$user->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized to view applications'
-            ], 403);
-        }
-
-        $applications = JobApplication::with(['fundi.fundiProfile'])
-            ->where('job_id', $jobId)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $applications
-        ]);
     }
 
     /**
@@ -125,24 +144,34 @@ class JobApplicationController extends Controller
      */
     public function getMyApplications(Request $request): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        if (!$user->isFundi()) {
+            if (!$user->isFundi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only fundis can view their applications'
+                ], 403);
+            }
+
+            $applications = JobApplication::with(['job.customer', 'job.category'])
+                ->where('fundi_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->paginate(15);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Applications retrieved successfully',
+                'data' => $applications
+            ]);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only fundis can view their applications'
-            ], 403);
+                'message' => 'Failed to retrieve applications',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving applications'
+            ], 500);
         }
-
-        $applications = JobApplication::with(['job.customer', 'job.category'])
-            ->where('fundi_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
-
-        return response()->json([
-            'success' => true,
-            'data' => $applications
-        ]);
     }
 
     /**
@@ -150,50 +179,59 @@ class JobApplicationController extends Controller
      */
     public function updateApplicationStatus(Request $request, $applicationId): JsonResponse
     {
-        $user = $request->user();
-        $application = JobApplication::with('job')->find($applicationId);
+        try {
+            $user = $request->user();
+            $application = JobApplication::with('job')->find($applicationId);
 
-        if (!$application) {
+            if (!$application) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Application not found'
+                ], 404);
+            }
+
+            // Only job owner or admin can update application status
+            if ($application->job->customer_id !== $user->id && !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized to update application status'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'status' => 'required|in:accepted,rejected',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $application->update(['status' => $request->status]);
+
+            // If accepted, update job status
+            if ($request->status === 'accepted') {
+                $application->job->update(['status' => 'in_progress']);
+            }
+
+            $application->load(['fundi.fundiProfile', 'job']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application status updated successfully',
+                'data' => $application
+            ]);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application not found'
-            ], 404);
+                'message' => 'Failed to update application status',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while updating application status'
+            ], 500);
         }
-
-        // Only job owner or admin can update application status
-        if ($application->job->customer_id !== $user->id && !$user->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized to update application status'
-            ], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|in:accepted,rejected',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $application->update(['status' => $request->status]);
-
-        // If accepted, update job status
-        if ($request->status === 'accepted') {
-            $application->job->update(['status' => 'in_progress']);
-        }
-
-        $application->load(['fundi.fundiProfile', 'job']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Application status updated successfully',
-            'data' => $application
-        ]);
     }
 
     /**
@@ -201,29 +239,38 @@ class JobApplicationController extends Controller
      */
     public function destroy(Request $request, $applicationId): JsonResponse
     {
-        $user = $request->user();
-        $application = JobApplication::find($applicationId);
+        try {
+            $user = $request->user();
+            $application = JobApplication::find($applicationId);
 
-        if (!$application) {
+            if (!$application) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Application not found'
+                ], 404);
+            }
+
+            // Only application owner or admin can delete
+            if ($application->fundi_id !== $user->id && !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized to delete this application'
+                ], 403);
+            }
+
+            $application->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application not found'
-            ], 404);
+                'message' => 'Failed to delete application',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while deleting application'
+            ], 500);
         }
-
-        // Only application owner or admin can delete
-        if ($application->fundi_id !== $user->id && !$user->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized to delete this application'
-            ], 403);
-        }
-
-        $application->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Application deleted successfully'
-        ]);
     }
 }

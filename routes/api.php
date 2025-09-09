@@ -1,0 +1,159 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\JobController;
+use App\Http\Controllers\JobApplicationController;
+use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\CategoryController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
+
+// Public routes
+Route::prefix('v1')->group(function () {
+    
+    // Authentication routes
+    Route::post('/auth/register', [AuthController::class, 'register']);
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    
+    // Categories (public)
+    Route::get('/categories', [CategoryController::class, 'index']);
+    
+    // Jobs (public for viewing)
+    Route::get('/jobs', [JobController::class, 'index']);
+    Route::get('/jobs/{id}', [JobController::class, 'show']);
+    
+    // Fundi profiles (public for viewing)
+    Route::get('/fundi/{id}', [UserController::class, 'getFundiProfile']);
+    
+    // Portfolio (public for viewing)
+    Route::get('/portfolio/{fundi_id}', [PortfolioController::class, 'getFundiPortfolio']);
+    
+    // Protected routes
+    Route::middleware('auth:sanctum')->group(function () {
+        
+        // Authentication
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::get('/auth/me', [AuthController::class, 'me']);
+        
+        // User management
+        Route::get('/users/me', [UserController::class, 'me']);
+        Route::patch('/users/me/fundi-profile', [UserController::class, 'updateFundiProfile']);
+        
+        // Jobs (authenticated)
+        Route::middleware('role:customer,admin')->group(function () {
+            Route::post('/jobs', [JobController::class, 'store']);
+            Route::put('/jobs/{id}', [JobController::class, 'update']);
+            Route::delete('/jobs/{id}', [JobController::class, 'destroy']);
+        });
+        
+        // Job applications
+        Route::middleware('role:fundi')->group(function () {
+            Route::post('/jobs/{job_id}/apply', [JobApplicationController::class, 'apply']);
+            Route::get('/my-applications', [JobApplicationController::class, 'getMyApplications']);
+        });
+        
+        Route::middleware('role:customer,admin')->group(function () {
+            Route::get('/jobs/{job_id}/applications', [JobApplicationController::class, 'getJobApplications']);
+            Route::patch('/applications/{id}/status', [JobApplicationController::class, 'updateApplicationStatus']);
+        });
+        
+        Route::delete('/applications/{id}', [JobApplicationController::class, 'destroy']);
+        
+        // Portfolio management
+        Route::middleware('role:fundi,admin')->group(function () {
+            Route::post('/portfolio', [PortfolioController::class, 'store']);
+            Route::put('/portfolio/{id}', [PortfolioController::class, 'update']);
+            Route::delete('/portfolio/{id}', [PortfolioController::class, 'destroy']);
+            Route::post('/portfolio-media', [PortfolioController::class, 'uploadMedia']);
+        });
+        
+        // Payments
+        Route::middleware('role:fundi,customer')->group(function () {
+            Route::get('/payments', [PaymentController::class, 'index']);
+            Route::post('/payments', [PaymentController::class, 'store']);
+        });
+        
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+        
+        // Admin routes
+        Route::middleware('role:admin')->prefix('admin')->group(function () {
+            
+            // User management
+            Route::get('/users', [AdminController::class, 'getUsers']);
+            Route::get('/users/{id}', [AdminController::class, 'getUser']);
+            Route::patch('/users/{id}', [AdminController::class, 'updateUser']);
+            Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+            
+            // Fundi profiles
+            Route::get('/fundi_profiles', [AdminController::class, 'getFundiProfiles']);
+            Route::patch('/fundi_profiles/{id}/verify', [AdminController::class, 'verifyFundi']);
+            
+            // Jobs management
+            Route::get('/jobs', [AdminController::class, 'getAllJobs']);
+            Route::get('/jobs/{id}', [AdminController::class, 'getJob']);
+            Route::patch('/jobs/{id}', [AdminController::class, 'updateJob']);
+            Route::delete('/jobs/{id}', [AdminController::class, 'deleteJob']);
+            
+            // Applications management
+            Route::get('/job_applications', [AdminController::class, 'getAllApplications']);
+            Route::patch('/job_applications/{id}', [AdminController::class, 'updateApplication']);
+            Route::delete('/job_applications/{id}', [AdminController::class, 'deleteApplication']);
+            
+            // Portfolio management
+            Route::patch('/portfolio/{id}', [AdminController::class, 'updatePortfolio']);
+            Route::delete('/portfolio/{id}', [AdminController::class, 'deletePortfolio']);
+            
+            // Payments management
+            Route::get('/payments', [AdminController::class, 'getAllPayments']);
+            Route::patch('/payments/{id}', [AdminController::class, 'updatePayment']);
+            Route::get('/payments/reports', [AdminController::class, 'getPaymentReports']);
+            
+            // Notifications management
+            Route::post('/notifications', [AdminController::class, 'sendNotification']);
+            Route::patch('/notifications/{id}', [AdminController::class, 'updateNotification']);
+            Route::delete('/notifications/{id}', [AdminController::class, 'deleteNotification']);
+            
+            // Categories management
+            Route::post('/categories', [AdminController::class, 'createCategory']);
+            Route::patch('/categories/{id}', [AdminController::class, 'updateCategory']);
+            Route::delete('/categories/{id}', [AdminController::class, 'deleteCategory']);
+            
+            // Settings
+            Route::get('/settings', [AdminController::class, 'getSettings']);
+            Route::patch('/settings', [AdminController::class, 'updateSettings']);
+            
+            // Monitoring
+            Route::get('/monitor/active-users', [MonitoringController::class, 'getActiveUsers']);
+            Route::get('/monitor/jobs-summary', [MonitoringController::class, 'getJobsSummary']);
+            Route::get('/monitor/payments-summary', [MonitoringController::class, 'getPaymentsSummary']);
+            Route::get('/monitor/system-health', [MonitoringController::class, 'getSystemHealth']);
+            Route::get('/monitor/api-logs', [MonitoringController::class, 'getApiLogs']);
+            
+            // Sessions
+            Route::get('/sessions', [AdminController::class, 'getSessions']);
+            Route::delete('/sessions/{id}', [AdminController::class, 'forceLogout']);
+            
+            // Laravel logs
+            Route::get('/logs', [MonitoringController::class, 'getLaravelLogs']);
+        });
+    });
+});

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('portfolio_media', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('portfolio_id')->constrained()->onDelete('cascade');
+            $table->foreignId('portfolio_id')->constrained('portfolio')->onDelete('cascade');
             $table->enum('media_type', ['image', 'video']);
             $table->string('file_path', 255);
             $table->smallInteger('order_index')->unsigned()->default(0);
