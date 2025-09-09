@@ -189,45 +189,13 @@ class PortfolioController extends Controller
     }
 
     /**
-     * Upload portfolio media
+     * Upload portfolio media (Legacy - use FileUploadController instead)
      */
     public function uploadMedia(Request $request): JsonResponse
     {
-        try {
-            $validator = Validator::make($request->all(), [
-                'portfolio_id' => 'required|exists:portfolio,id',
-                'media_type' => 'required|in:image,video',
-                'file_path' => 'required|string|max:255',
-                'order_index' => 'nullable|integer|min:0',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $media = PortfolioMedia::create([
-                'portfolio_id' => $request->portfolio_id,
-                'media_type' => $request->media_type,
-                'file_path' => $request->file_path,
-                'order_index' => $request->order_index ?? 0,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Media uploaded successfully',
-                'data' => $media
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload media',
-                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while uploading media'
-            ], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'This endpoint is deprecated. Use POST /api/v1/upload/portfolio-media instead'
+        ], 410);
     }
 }

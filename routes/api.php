@@ -12,6 +12,9 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\RatingReviewController;
+use App\Http\Controllers\FileUploadController;
+use App\Http\Controllers\AuditController;
 
 /*
 |--------------------------------------------------------------------------
@@ -94,6 +97,20 @@ Route::prefix('v1')->group(function () {
         Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
         Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
         
+        // Ratings and Reviews
+        Route::post('/ratings', [RatingReviewController::class, 'store'])->middleware('role:customer');
+        Route::get('/ratings/my-ratings', [RatingReviewController::class, 'getMyRatings'])->middleware('role:customer');
+        Route::get('/ratings/fundi/{fundiId}', [RatingReviewController::class, 'getFundiRatings']);
+        Route::put('/ratings/{id}', [RatingReviewController::class, 'update']);
+        Route::delete('/ratings/{id}', [RatingReviewController::class, 'destroy']);
+        
+        // File Uploads
+        Route::post('/upload/portfolio-media', [FileUploadController::class, 'uploadPortfolioMedia'])->middleware('role:fundi');
+        Route::post('/upload/job-media', [FileUploadController::class, 'uploadJobMedia'])->middleware('role:customer');
+        Route::post('/upload/profile-document', [FileUploadController::class, 'uploadProfileDocument'])->middleware('role:fundi');
+        Route::delete('/upload/media/{id}', [FileUploadController::class, 'deleteMedia']);
+        Route::get('/upload/media/{id}/url', [FileUploadController::class, 'getMediaUrl']);
+        
         // Admin routes
         Route::middleware('role:admin')->prefix('admin')->group(function () {
             
@@ -132,6 +149,9 @@ Route::prefix('v1')->group(function () {
             Route::patch('/notifications/{id}', [AdminController::class, 'updateNotification']);
             Route::delete('/notifications/{id}', [AdminController::class, 'deleteNotification']);
             
+            // Ratings management
+            Route::get('/ratings', [RatingReviewController::class, 'getAllRatings']);
+            
             // Categories management
             Route::post('/categories', [AdminController::class, 'createCategory']);
             Route::patch('/categories/{id}', [AdminController::class, 'updateCategory']);
@@ -154,6 +174,16 @@ Route::prefix('v1')->group(function () {
             
             // Laravel logs
             Route::get('/logs', [MonitoringController::class, 'getLaravelLogs']);
+            
+            // Audit logs
+            Route::get('/audit-logs', [AuditController::class, 'index']);
+            Route::get('/audit-logs/{id}', [AuditController::class, 'show']);
+            Route::get('/audit-logs/statistics', [AuditController::class, 'statistics']);
+            Route::get('/audit-logs/failed-actions', [AuditController::class, 'failedActions']);
+            Route::get('/audit-logs/user-activity/{userId}', [AuditController::class, 'userActivity']);
+            Route::get('/audit-logs/security-events', [AuditController::class, 'securityEvents']);
+            Route::get('/audit-logs/api-errors', [AuditController::class, 'apiErrors']);
+            Route::get('/audit-logs/export', [AuditController::class, 'export']);
         });
     });
 });

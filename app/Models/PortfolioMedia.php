@@ -25,4 +25,12 @@ class PortfolioMedia extends Model
     {
         return $this->belongsTo(Portfolio::class);
     }
+
+    /**
+     * Get the file URL
+     */
+    public function getFileUrlAttribute(): string
+    {
+        return \Illuminate\Support\Facades\Storage::url($this->file_path);
+    }
 }

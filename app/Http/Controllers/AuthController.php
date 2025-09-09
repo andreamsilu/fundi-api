@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\UserSession;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -52,6 +53,9 @@ class AuthController extends Controller
                 'expired_at' => now()->addDays(30),
             ]);
 
+            // Log successful registration
+            AuditService::logAuth('REGISTER', $user);
+
             return response()->json([
                 'success' => true,
                 'message' => 'User registered successfully',
@@ -94,6 +98,8 @@ class AuthController extends Controller
             $user = User::where('phone', $request->phone)->first();
 
             if (!$user || !Hash::check($request->password, $user->password)) {
+                // Log failed login attempt
+                AuditService::logAuth('LOGIN', null, 'Invalid credentials');
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid credentials'
@@ -101,6 +107,8 @@ class AuthController extends Controller
             }
 
             if ($user->status !== 'active') {
+                // Log failed login attempt
+                AuditService::logAuth('LOGIN', $user, 'Account is not active');
                 return response()->json([
                     'success' => false,
                     'message' => 'Account is not active'
@@ -117,6 +125,9 @@ class AuthController extends Controller
                 'token' => $token,
                 'expired_at' => now()->addDays(30),
             ]);
+
+            // Log successful login
+            AuditService::logAuth('LOGIN', $user);
 
             return response()->json([
                 'success' => true,
@@ -151,6 +162,9 @@ class AuthController extends Controller
                 ->update(['logout_at' => now()]);
 
             $request->user()->currentAccessToken()->delete();
+
+            // Log successful logout
+            AuditService::logAuth('LOGOUT', $request->user());
 
             return response()->json([
                 'success' => true,

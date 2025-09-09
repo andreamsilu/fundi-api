@@ -25,4 +25,12 @@ class JobMedia extends Model
     {
         return $this->belongsTo(Job::class);
     }
+
+    /**
+     * Get the file URL
+     */
+    public function getFileUrlAttribute(): string
+    {
+        return \Illuminate\Support\Facades\Storage::url($this->file_path);
+    }
 }
