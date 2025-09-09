@@ -18,6 +18,7 @@ return new class extends Migration
             $table->enum('payment_type', ['subscription', 'application_fee', 'job_posting']);
             $table->enum('status', ['pending', 'completed', 'failed'])->default('pending');
             $table->string('pesapal_reference', 100)->unique();
+            $table->json('metadata')->nullable(); // Additional payment context
             $table->timestamps();
         });
     }

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Job;
 use App\Models\JobApplication;
+use App\Services\PaymentValidationService;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -53,6 +55,21 @@ class JobApplicationController extends Controller
                 ], 400);
             }
 
+            // Check payment requirements
+            $paymentValidation = PaymentValidationService::canApplyForJob($user, $job);
+            
+            if (!$paymentValidation['allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $paymentValidation['reason'],
+                    'payment_required' => true,
+                    'payment_details' => [
+                        'fee_amount' => $paymentValidation['fee_amount'],
+                        'payment_type' => $paymentValidation['payment_type'] ?? 'subscription'
+                    ]
+                ], 402); // Payment Required
+            }
+
             $validator = Validator::make($request->all(), [
                 'requirements' => 'nullable|string',
                 'budget_breakdown' => 'required|array',
@@ -80,11 +97,26 @@ class JobApplicationController extends Controller
 
             $application->load(['fundi.fundiProfile', 'job']);
 
-            return response()->json([
+            // Log application creation
+            AuditService::logCrud('CREATE', 'JobApplication', $application->id, null, $application->toArray());
+
+            $response = [
                 'success' => true,
                 'message' => 'Application submitted successfully',
                 'data' => $application
-            ], 201);
+            ];
+
+            // Include payment information if fee is required
+            if ($paymentValidation['fee_required']) {
+                $response['payment_info'] = [
+                    'fee_required' => true,
+                    'fee_amount' => $paymentValidation['fee_amount'],
+                    'payment_type' => $paymentValidation['payment_type'],
+                    'message' => 'Payment required to activate this application'
+                ];
+            }
+
+            return response()->json($response, 201);
 
         } catch (\Exception $e) {
             return response()->json([

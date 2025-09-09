@@ -90,6 +90,8 @@ Route::prefix('v1')->group(function () {
         Route::middleware('role:fundi,customer')->group(function () {
             Route::get('/payments', [PaymentController::class, 'index']);
             Route::post('/payments', [PaymentController::class, 'store']);
+            Route::get('/payments/requirements', [PaymentController::class, 'getRequirements']);
+            Route::post('/payments/check-required', [PaymentController::class, 'checkPaymentRequired']);
         });
         
         // Notifications

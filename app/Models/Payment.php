@@ -13,10 +13,12 @@ class Payment extends Model
         'payment_type',
         'status',
         'pesapal_reference',
+        'metadata',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'metadata' => 'array',
     ];
 
     /**

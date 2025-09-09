@@ -939,8 +939,15 @@ class AdminController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'payments_enabled' => 'sometimes|boolean',
-                'payment_model' => 'sometimes|in:subscription,pay_per_application,pay_per_job,hybrid',
+                'payment_model' => 'sometimes|in:subscription,pay_per_application,pay_per_job,hybrid,free',
+                'subscription_enabled' => 'sometimes|boolean',
                 'subscription_fee' => 'sometimes|numeric|min:0',
+                'subscription_period' => 'sometimes|in:monthly,yearly',
+                'job_application_fee_enabled' => 'sometimes|boolean',
+                'job_application_fee' => 'sometimes|numeric|min:0',
+                'job_posting_fee_enabled' => 'sometimes|boolean',
+                'job_posting_fee' => 'sometimes|numeric|min:0',
+                // Legacy fields
                 'application_fee' => 'sometimes|numeric|min:0',
                 'job_post_fee' => 'sometimes|numeric|min:0',
             ]);
