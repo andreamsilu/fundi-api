@@ -1,0 +1,131 @@
+{
+	"name": "Job Applications",
+	"item": [
+		{
+			"name": "Apply for Job",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requirements\": \"I have all necessary tools and 5 years experience\",\n  \"budget_breakdown\": {\n    \"materials\": 20000,\n    \"labor\": 25000,\n    \"transport\": 5000\n  },\n  \"estimated_time\": 2\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/jobs/1/apply",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "jobs", "1", "apply"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Job Applications",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/jobs/1/applications",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "jobs", "1", "applications"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get My Applications",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/applications/my-applications",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "applications", "my-applications"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Application Status",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"status\": \"accepted\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/applications/1/status",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "applications", "1", "status"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Application",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/applications/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "applications", "1"]
+				}
+			},
+			"response": []
+		}
+	]
+}

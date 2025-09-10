@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Services\AuditService;
+use App\Services\TokenRefreshService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -42,15 +43,19 @@ class AuthController extends Controller
                 'nida_number' => $request->nida_number,
             ]);
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken(
+                'auth_token',
+                ['*'],
+                TokenRefreshService::getTokenExpiration()
+            );
 
             // Create user session
             UserSession::create([
                 'user_id' => $user->id,
                 'device_info' => $request->header('User-Agent'),
                 'ip_address' => $request->ip(),
-                'token' => $token,
-                'expired_at' => now()->addDays(30),
+                'token' => $token->plainTextToken,
+                'expired_at' => TokenRefreshService::getTokenExpiration(),
             ]);
 
             // Log successful registration
@@ -63,7 +68,8 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'phone' => $user->phone,
                     'role' => $user->role,
-                    'token' => $token
+                    'token' => $token->plainTextToken,
+                    'expires_at' => TokenRefreshService::getTokenExpiration()->toISOString(),
                 ]
             ], 201);
 
@@ -115,15 +121,19 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken(
+                'auth_token',
+                ['*'],
+                TokenRefreshService::getTokenExpiration()
+            );
 
             // Create user session
             UserSession::create([
                 'user_id' => $user->id,
                 'device_info' => $request->header('User-Agent'),
                 'ip_address' => $request->ip(),
-                'token' => $token,
-                'expired_at' => now()->addDays(30),
+                'token' => $token->plainTextToken,
+                'expired_at' => TokenRefreshService::getTokenExpiration(),
             ]);
 
             // Log successful login
@@ -136,7 +146,8 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'phone' => $user->phone,
                     'role' => $user->role,
-                    'token' => $token
+                    'token' => $token->plainTextToken,
+                    'expires_at' => TokenRefreshService::getTokenExpiration()->toISOString(),
                 ]
             ]);
 
@@ -176,6 +187,85 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Logout failed',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred during logout'
+            ], 500);
+        }
+    }
+
+    /**
+     * Refresh authentication token
+     */
+    public function refreshToken(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'token' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $result = TokenRefreshService::refreshToken($request->token);
+
+            if ($result['success']) {
+                // Log successful token refresh
+                AuditService::logAuth('TOKEN_REFRESH', $request->user());
+            }
+
+            return response()->json($result, $result['success'] ? 200 : 401);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token refresh failed',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred during token refresh'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get token information
+     */
+    public function tokenInfo(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'token' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $tokenInfo = TokenRefreshService::getTokenInfo($request->token);
+
+            if (!$tokenInfo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token not found',
+                    'error' => 'TOKEN_NOT_FOUND'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token information retrieved successfully',
+                'data' => $tokenInfo
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve token information',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving token information'
             ], 500);
         }
     }

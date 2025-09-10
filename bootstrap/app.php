@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->alias([
                 'role' => \App\Http\Middleware\RoleMiddleware::class,
                 'audit' => \App\Http\Middleware\AuditMiddleware::class,
+                'token.valid' => \App\Http\Middleware\EnsureTokenIsValid::class,
             ]);
             
             // Apply audit middleware to API routes

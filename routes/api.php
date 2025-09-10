@@ -33,6 +33,8 @@ Route::prefix('v1')->group(function () {
     // Authentication routes
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/refresh-token', [AuthController::class, 'refreshToken']);
+    Route::post('/auth/token-info', [AuthController::class, 'tokenInfo']);
     
     // Categories (public)
     Route::get('/categories', [CategoryController::class, 'index']);
