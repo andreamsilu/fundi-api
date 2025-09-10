@@ -12,7 +12,9 @@ class AdminSettingSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\AdminSetting::create([
+        \App\Models\AdminSetting::updateOrCreate(
+            ['id' => 1],
+            [
             'payments_enabled' => true,
             'payment_model' => 'free', // Start with free mode
             
@@ -30,6 +32,7 @@ class AdminSettingSeeder extends Seeder
             // Legacy fields for backward compatibility
             'application_fee' => 1000.00,
             'job_post_fee' => 2000.00,
-        ]);
+            ]
+        );
     }
 }

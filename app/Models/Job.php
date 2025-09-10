@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Job extends Model
 {
+    protected $table = 'job_postings';
+    
     protected $fillable = [
         'customer_id',
         'category_id',
