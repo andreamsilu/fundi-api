@@ -71,17 +71,15 @@ class RatingReviewSeeder extends Seeder
                     ? $reviewTemplates[array_rand($reviewTemplates)]
                     : $negativeReviewTemplates[array_rand($negativeReviewTemplates)];
 
-                RatingReview::create([
-                    'customer_id' => $customer->id,
-                    'fundi_id' => $fundi->id,
-                    'job_id' => $job->id,
-                    'rating' => $rating,
-                    'review' => $reviewText,
-                    'is_verified' => rand(1, 100) <= 90, // 90% verified
-                    'helpful_count' => rand(0, 10),
-                    'created_at' => $job->updated_at->addDays(rand(0, 7)), // Within a week of job completion
-                    'updated_at' => $job->updated_at->addDays(rand(0, 7))
-                ]);
+                RatingReview::updateOrCreate(
+                    ['customer_id' => $customer->id, 'fundi_id' => $fundi->id, 'job_id' => $job->id],
+                    [
+                        'rating' => $rating,
+                        'review' => $reviewText,
+                        'created_at' => $job->updated_at->addDays(rand(0, 7)), // Within a week of job completion
+                        'updated_at' => $job->updated_at->addDays(rand(0, 7))
+                    ]
+                );
             }
         }
 
@@ -96,17 +94,16 @@ class RatingReviewSeeder extends Seeder
                     ? $reviewTemplates[array_rand($reviewTemplates)]
                     : $negativeReviewTemplates[array_rand($negativeReviewTemplates)];
 
-                RatingReview::create([
-                    'customer_id' => $customer->id,
-                    'fundi_id' => $fundi->id,
-                    'job_id' => null,
-                    'rating' => $rating,
-                    'review' => $reviewText,
-                    'is_verified' => rand(1, 100) <= 85,
-                    'helpful_count' => rand(0, 8),
-                    'created_at' => now()->subDays(rand(0, 90)),
-                    'updated_at' => now()->subDays(rand(0, 30))
-                ]);
+                $randomJob = $completedJobs->random();
+                RatingReview::updateOrCreate(
+                    ['customer_id' => $customer->id, 'fundi_id' => $fundi->id, 'job_id' => $randomJob->id],
+                    [
+                        'rating' => $rating,
+                        'review' => $reviewText,
+                        'created_at' => now()->subDays(rand(0, 90)),
+                        'updated_at' => now()->subDays(rand(0, 30))
+                    ]
+                );
             }
         }
     }

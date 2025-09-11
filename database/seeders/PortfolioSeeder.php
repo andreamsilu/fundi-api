@@ -111,13 +111,9 @@ class PortfolioSeeder extends Seeder
                     'fundi_id' => $fundi->id,
                     'title' => $title,
                     'description' => $description,
-                    'category' => $this->getCategory($skills),
-                    'skills_used' => $skills,
-                    'images' => $this->getImages($titleIndex),
+                    'skills_used' => json_encode($skills),
                     'duration_hours' => rand(8, 120), // 1-15 days of work
                     'budget' => rand(50000, 2000000), // 50,000 - 2,000,000 TZS
-                    'client_name' => $clientNames[array_rand($clientNames)],
-                    'location' => $this->getLocation(),
                     'created_at' => now()->subDays(rand(0, 180)), // Within last 6 months
                     'updated_at' => now()->subDays(rand(0, 30))
                 ]);

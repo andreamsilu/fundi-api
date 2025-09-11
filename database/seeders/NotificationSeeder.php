@@ -78,10 +78,6 @@ class NotificationSeeder extends Seeder
                     'title' => $notificationData['title'],
                     'message' => $this->getPersonalizedMessage($notificationData['message'], $user, $type),
                     'read_status' => $isRead,
-                    'sender_name' => $this->getSenderName($type),
-                    'sender_image_url' => $this->getSenderImageUrl($type),
-                    'action_url' => $this->getActionUrl($type, $user),
-                    'data' => $this->getNotificationData($type, $user),
                     'created_at' => now()->subDays(rand(0, 30)),
                     'updated_at' => now()->subDays(rand(0, 15))
                 ]);
@@ -101,14 +97,6 @@ class NotificationSeeder extends Seeder
                 'title' => 'New Job Application',
                 'message' => "You have received a new application for your job: {$job->title}",
                 'read_status' => rand(1, 100) <= 60,
-                'sender_name' => $fundi->fundiProfile?->first_name ?? 'Fundi',
-                'sender_image_url' => null,
-                'action_url' => "/jobs/{$job->id}/applications",
-                'data' => [
-                    'job_id' => $job->id,
-                    'application_id' => $application->id,
-                    'fundi_id' => $fundi->id
-                ],
                 'created_at' => $application->created_at,
                 'updated_at' => $application->updated_at
             ]);
@@ -123,14 +111,6 @@ class NotificationSeeder extends Seeder
                     'title' => "Job Application {$statusMessage}",
                     'message' => "Your application for '{$job->title}' has been {$statusMessage}.",
                     'read_status' => rand(1, 100) <= 80,
-                    'sender_name' => $customer->fundiProfile?->first_name ?? 'Customer',
-                    'sender_image_url' => null,
-                    'action_url' => "/my-applications/{$application->id}",
-                    'data' => [
-                        'job_id' => $job->id,
-                        'application_id' => $application->id,
-                        'customer_id' => $customer->id
-                    ],
                     'created_at' => $application->updated_at,
                     'updated_at' => $application->updated_at
                 ]);

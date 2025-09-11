@@ -28,7 +28,7 @@ class JobApplication extends Model
      */
     public function job(): BelongsTo
     {
-        return $this->belongsTo(Job::class);
+        return $this->belongsTo(Job::class, 'job_id', 'id');
     }
 
     /**
@@ -48,7 +48,16 @@ class JobApplication extends Model
             return 0;
         }
 
-        return array_sum($this->budget_breakdown);
+        // Handle both array and JSON string cases
+        $breakdown = is_string($this->budget_breakdown) 
+            ? json_decode($this->budget_breakdown, true) 
+            : $this->budget_breakdown;
+
+        if (!is_array($breakdown)) {
+            return 0;
+        }
+
+        return array_sum($breakdown);
     }
 
     /**

@@ -51,21 +51,22 @@ class JobApplicationSeeder extends Seeder
             foreach ($selectedFundis as $fundi) {
                 $budgetType = $budgetTypes[array_rand($budgetTypes)];
                 
-                JobApplication::create([
-                    'job_id' => $job->id,
-                    'fundi_id' => $fundi->id,
-                    'requirements' => $applicationMessages[array_rand($applicationMessages)],
-                    'budget_breakdown' => json_encode([
-                        'labor' => $this->getProposedBudget($job->budget, $budgetType) * 0.7,
-                        'materials' => $this->getProposedBudget($job->budget, $budgetType) * 0.3,
-                        'total' => $this->getProposedBudget($job->budget, $budgetType)
-                    ]),
-                    'total_budget' => $this->getProposedBudget($job->budget, $budgetType),
-                    'estimated_time' => rand(1, 14),
-                    'status' => $this->getApplicationStatus(),
-                    'created_at' => now()->subDays(rand(0, 30)),
-                    'updated_at' => now()->subDays(rand(0, 15))
-                ]);
+                JobApplication::updateOrCreate(
+                    ['job_id' => $job->id, 'fundi_id' => $fundi->id],
+                    [
+                        'requirements' => $applicationMessages[array_rand($applicationMessages)],
+                        'budget_breakdown' => json_encode([
+                            'labor' => $this->getProposedBudget($job->budget, $budgetType) * 0.7,
+                            'materials' => $this->getProposedBudget($job->budget, $budgetType) * 0.3,
+                            'total' => $this->getProposedBudget($job->budget, $budgetType)
+                        ]),
+                        'total_budget' => $this->getProposedBudget($job->budget, $budgetType),
+                        'estimated_time' => rand(1, 14),
+                        'status' => $this->getApplicationStatus(),
+                        'created_at' => now()->subDays(rand(0, 30)),
+                        'updated_at' => now()->subDays(rand(0, 15))
+                    ]
+                );
             }
         }
 
@@ -75,21 +76,22 @@ class JobApplicationSeeder extends Seeder
             $fundi = $fundis->random();
             $budgetType = $budgetTypes[array_rand($budgetTypes)];
             
-            JobApplication::create([
-                'job_id' => $job->id,
-                'fundi_id' => $fundi->id,
-                'requirements' => $applicationMessages[array_rand($applicationMessages)],
-                'budget_breakdown' => json_encode([
-                    'labor' => $this->getProposedBudget($job->budget, $budgetType) * 0.7,
-                    'materials' => $this->getProposedBudget($job->budget, $budgetType) * 0.3,
-                    'total' => $this->getProposedBudget($job->budget, $budgetType)
-                ]),
-                'total_budget' => $this->getProposedBudget($job->budget, $budgetType),
-                'estimated_time' => rand(1, 14),
-                'status' => 'accepted',
-                'created_at' => now()->subDays(rand(5, 20)),
-                'updated_at' => now()->subDays(rand(0, 10))
-            ]);
+            JobApplication::updateOrCreate(
+                ['job_id' => $job->id, 'fundi_id' => $fundi->id],
+                [
+                    'requirements' => $applicationMessages[array_rand($applicationMessages)],
+                    'budget_breakdown' => json_encode([
+                        'labor' => $this->getProposedBudget($job->budget, $budgetType) * 0.7,
+                        'materials' => $this->getProposedBudget($job->budget, $budgetType) * 0.3,
+                        'total' => $this->getProposedBudget($job->budget, $budgetType)
+                    ]),
+                    'total_budget' => $this->getProposedBudget($job->budget, $budgetType),
+                    'estimated_time' => rand(1, 14),
+                    'status' => 'accepted',
+                    'created_at' => now()->subDays(rand(5, 20)),
+                    'updated_at' => now()->subDays(rand(0, 10))
+                ]
+            );
         }
     }
 

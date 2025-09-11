@@ -76,11 +76,11 @@ class AuditLogSeeder extends Seeder
                 AuditLog::create([
                     'user_id' => $user->id,
                     'action' => $action,
-                    'description' => $description,
+                    'resource_type' => $this->getResourceType($action),
+                    'resource_id' => $this->getResourceId($action, $user),
                     'ip_address' => $ipAddresses[array_rand($ipAddresses)],
                     'user_agent' => $userAgents[array_rand($userAgents)],
                     'status' => $status,
-                    'severity' => $severity,
                     'metadata' => $this->getMetadata($action, $user),
                     'created_at' => now()->subDays(rand(0, 90)), // Within last 3 months
                     'updated_at' => now()->subDays(rand(0, 30))
@@ -104,11 +104,11 @@ class AuditLogSeeder extends Seeder
             AuditLog::create([
                 'user_id' => null, // System action
                 'action' => $action,
-                'description' => $description,
+                'resource_type' => 'System',
+                'resource_id' => null,
                 'ip_address' => '127.0.0.1',
                 'user_agent' => 'System',
                 'status' => 'success',
-                'severity' => 'medium',
                 'metadata' => [
                     'system_action' => true,
                     'timestamp' => now()->toISOString()
@@ -154,5 +154,56 @@ class AuditLogSeeder extends Seeder
         ];
 
         return array_merge($baseMetadata, $actionMetadata[$action] ?? []);
+    }
+
+    private function getResourceType($action): string
+    {
+        $resourceTypes = [
+            'user.login' => 'User',
+            'user.logout' => 'User',
+            'user.register' => 'User',
+            'user.profile.update' => 'User',
+            'job.create' => 'Job',
+            'job.update' => 'Job',
+            'job.delete' => 'Job',
+            'job.application.create' => 'JobApplication',
+            'job.application.update' => 'JobApplication',
+            'portfolio.create' => 'Portfolio',
+            'portfolio.update' => 'Portfolio',
+            'portfolio.delete' => 'Portfolio',
+            'payment.create' => 'Payment',
+            'payment.update' => 'Payment',
+            'rating.create' => 'RatingReview',
+            'rating.update' => 'RatingReview',
+            'notification.create' => 'Notification',
+            'notification.read' => 'Notification',
+            'admin.user.update' => 'User',
+            'admin.user.delete' => 'User',
+            'admin.job.update' => 'Job',
+            'admin.job.delete' => 'Job',
+            'admin.settings.update' => 'AdminSetting',
+            'system.startup' => 'System',
+            'system.shutdown' => 'System',
+            'system.maintenance' => 'System',
+            'system.backup' => 'System',
+            'system.update' => 'System',
+            'database.migration' => 'System',
+            'cache.clear' => 'System',
+            'queue.process' => 'System'
+        ];
+
+        return $resourceTypes[$action] ?? 'Unknown';
+    }
+
+    private function getResourceId($action, $user): ?int
+    {
+        // For user-related actions, return the user ID
+        if (strpos($action, 'user.') === 0) {
+            return $user->id;
+        }
+
+        // For other actions, return a random ID or null
+        $randomIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        return $randomIds[array_rand($randomIds)];
     }
 }

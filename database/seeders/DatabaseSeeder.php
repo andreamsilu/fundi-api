@@ -24,7 +24,6 @@ class DatabaseSeeder extends Seeder
             NotificationSeeder::class,
             PaymentSeeder::class,
             RatingReviewSeeder::class,
-            UserSessionSeeder::class,
             AuditLogSeeder::class,
         ]);
     }
