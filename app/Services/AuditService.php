@@ -48,7 +48,7 @@ class AuditService
     /**
      * Log user authentication
      */
-    public static function logAuth(string $action, ?User $user = null, ?string $errorMessage = null): void
+    public static function logAuth(string $action, ?\App\Models\User $user = null, ?string $errorMessage = null): void
     {
         self::log(
             action: $action,

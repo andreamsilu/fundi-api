@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\UserSession;
 use App\Services\AuditService;
 use App\Services\TokenRefreshService;
 use Illuminate\Http\Request;
@@ -49,14 +48,8 @@ class AuthController extends Controller
                 TokenRefreshService::getTokenExpiration()
             );
 
-            // Create user session
-            UserSession::create([
-                'user_id' => $user->id,
-                'device_info' => $request->header('User-Agent'),
-                'ip_address' => $request->ip(),
-                'token' => $token->plainTextToken,
-                'expired_at' => TokenRefreshService::getTokenExpiration(),
-            ]);
+            // User session is now handled by Laravel Sanctum
+            // No need for custom UserSession model
 
             // Log successful registration
             AuditService::logAuth('REGISTER', $user);
@@ -127,14 +120,8 @@ class AuthController extends Controller
                 TokenRefreshService::getTokenExpiration()
             );
 
-            // Create user session
-            UserSession::create([
-                'user_id' => $user->id,
-                'device_info' => $request->header('User-Agent'),
-                'ip_address' => $request->ip(),
-                'token' => $token->plainTextToken,
-                'expired_at' => TokenRefreshService::getTokenExpiration(),
-            ]);
+            // User session is now handled by Laravel Sanctum
+            // No need for custom UserSession model
 
             // Log successful login
             AuditService::logAuth('LOGIN', $user);
@@ -152,10 +139,16 @@ class AuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Login error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Login failed',
-                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred during login'
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }

@@ -49,12 +49,8 @@ class TokenRefreshService
                 self::getTokenExpiration()
             );
 
-            // Update user session
-            \App\Models\UserSession::where('token', $oldToken)
-                ->update([
-                    'token' => $newToken->plainTextToken,
-                    'expired_at' => self::getTokenExpiration(),
-                ]);
+            // User session is now handled by Laravel Sanctum
+            // No need to update custom UserSession model
 
             DB::commit();
 
@@ -108,10 +104,8 @@ class TokenRefreshService
             // Revoke all Sanctum tokens
             $user->tokens()->delete();
 
-            // Update all user sessions
-            \App\Models\UserSession::where('user_id', $user->id)
-                ->whereNull('logout_at')
-                ->update(['logout_at' => now()]);
+            // User session is now handled by Laravel Sanctum
+            // No need to update custom UserSession model
 
             return true;
         } catch (\Exception $e) {
@@ -130,9 +124,8 @@ class TokenRefreshService
             if ($accessToken) {
                 $accessToken->delete();
                 
-                // Update user session
-                \App\Models\UserSession::where('token', $token)
-                    ->update(['logout_at' => now()]);
+                // User session is now handled by Laravel Sanctum
+                // No need to update custom UserSession model
                 
                 return true;
             }
