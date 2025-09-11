@@ -31,11 +31,11 @@ class PaymentValidationService
     {
         $settings = self::getSettings();
         
-        // If platform is in free mode, allow posting
-        if ($settings->isFreeMode()) {
+        // Default to free mode if no settings exist or free mode is enabled
+        if (!$settings->exists || $settings->isFreeMode()) {
             return [
                 'allowed' => true,
-                'reason' => 'Free mode enabled',
+                'reason' => 'Free mode enabled (default)',
                 'fee_required' => false,
                 'fee_amount' => 0
             ];

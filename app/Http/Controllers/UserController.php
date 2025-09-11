@@ -42,7 +42,7 @@ class UserController extends Controller
         try {
             $user = $request->user();
 
-            if (!$user->isFundi()) {
+            if (!$user->isFundi() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Only fundis can update fundi profile'

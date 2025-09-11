@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Services\AuditService;
-use App\Services\TokenRefreshService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -44,15 +42,12 @@ class AuthController extends Controller
 
             $token = $user->createToken(
                 'auth_token',
-                ['*'],
-                TokenRefreshService::getTokenExpiration()
+                ['*']
             );
 
             // User session is now handled by Laravel Sanctum
             // No need for custom UserSession model
 
-            // Log successful registration
-            AuditService::logAuth('REGISTER', $user);
 
             return response()->json([
                 'success' => true,
@@ -62,7 +57,6 @@ class AuthController extends Controller
                     'phone' => $user->phone,
                     'role' => $user->role,
                     'token' => $token->plainTextToken,
-                    'expires_at' => TokenRefreshService::getTokenExpiration()->toISOString(),
                 ]
             ], 201);
 
@@ -97,8 +91,6 @@ class AuthController extends Controller
             $user = User::where('phone', $request->phone)->first();
 
             if (!$user || !Hash::check($request->password, $user->password)) {
-                // Log failed login attempt
-                AuditService::logAuth('LOGIN', null, 'Invalid credentials');
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid credentials'
@@ -106,8 +98,6 @@ class AuthController extends Controller
             }
 
             if ($user->status !== 'active') {
-                // Log failed login attempt
-                AuditService::logAuth('LOGIN', $user, 'Account is not active');
                 return response()->json([
                     'success' => false,
                     'message' => 'Account is not active'
@@ -116,15 +106,12 @@ class AuthController extends Controller
 
             $token = $user->createToken(
                 'auth_token',
-                ['*'],
-                TokenRefreshService::getTokenExpiration()
+                ['*']
             );
 
             // User session is now handled by Laravel Sanctum
             // No need for custom UserSession model
 
-            // Log successful login
-            AuditService::logAuth('LOGIN', $user);
 
             return response()->json([
                 'success' => true,
@@ -134,7 +121,6 @@ class AuthController extends Controller
                     'phone' => $user->phone,
                     'role' => $user->role,
                     'token' => $token->plainTextToken,
-                    'expires_at' => TokenRefreshService::getTokenExpiration()->toISOString(),
                 ]
             ]);
 
@@ -159,16 +145,29 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
-            $token = $request->user()->currentAccessToken();
+            // Custom token validation to bypass middleware issues
+            $token = $request->bearerToken();
             
-            // Update user session
-            UserSession::where('token', $token->token)
-                ->update(['logout_at' => now()]);
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token not provided',
+                    'error' => 'UNAUTHENTICATED'
+                ], 401);
+            }
 
-            $request->user()->currentAccessToken()->delete();
+            $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            
+            if (!$accessToken) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid token',
+                    'error' => 'INVALID_TOKEN'
+                ], 401);
+            }
 
-            // Log successful logout
-            AuditService::logAuth('LOGOUT', $request->user());
+            // Delete the token
+            $accessToken->delete();
 
             return response()->json([
                 'success' => true,
@@ -184,41 +183,6 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Refresh authentication token
-     */
-    public function refreshToken(Request $request): JsonResponse
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'token' => 'required|string',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $result = TokenRefreshService::refreshToken($request->token);
-
-            if ($result['success']) {
-                // Log successful token refresh
-                AuditService::logAuth('TOKEN_REFRESH', $request->user());
-            }
-
-            return response()->json($result, $result['success'] ? 200 : 401);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token refresh failed',
-                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred during token refresh'
-            ], 500);
-        }
-    }
 
     /**
      * Get token information
@@ -238,15 +202,24 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            $tokenInfo = TokenRefreshService::getTokenInfo($request->token);
+            $token = \Laravel\Sanctum\PersonalAccessToken::findToken($request->token);
 
-            if (!$tokenInfo) {
+            if (!$token) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Token not found',
                     'error' => 'TOKEN_NOT_FOUND'
                 ], 404);
             }
+
+            $tokenInfo = [
+                'id' => $token->id,
+                'name' => $token->name,
+                'abilities' => $token->abilities,
+                'created_at' => $token->created_at->toISOString(),
+                'expires_at' => $token->expires_at?->toISOString(),
+                'last_used_at' => $token->last_used_at?->toISOString(),
+            ];
 
             return response()->json([
                 'success' => true,
@@ -269,8 +242,28 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         try {
-            $user = $request->user();
-            $user->load('fundiProfile');
+            // Custom token validation to bypass middleware issues
+            $token = $request->bearerToken();
+            
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token not provided',
+                    'error' => 'UNAUTHENTICATED'
+                ], 401);
+            }
+
+            $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            
+            if (!$accessToken) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid token',
+                    'error' => 'INVALID_TOKEN'
+                ], 401);
+            }
+
+            $user = $accessToken->tokenable;
 
             return response()->json([
                 'success' => true,

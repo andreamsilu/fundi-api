@@ -27,30 +27,50 @@ use App\Http\Controllers\AuditController;
 |
 */
 
-// Public routes
+// Public routes (only authentication)
 Route::prefix('v1')->group(function () {
     
-    // Authentication routes
+    // Authentication routes (public)
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/refresh-token', [AuthController::class, 'refreshToken']);
     Route::post('/auth/token-info', [AuthController::class, 'tokenInfo']);
     
-    // Categories (public)
+    // Debug route
+    Route::get('/debug/auth', function() {
+        return response()->json([
+            'authenticated' => auth()->check(),
+            'user' => auth()->user(),
+            'guard' => auth()->getDefaultDriver()
+        ]);
+    });
+    
+    // Simple test route
+    Route::get('/test', function() {
+        return response()->json(['message' => 'API is working']);
+    });
+    
+    // Categories (public - needed for job creation)
     Route::get('/categories', [CategoryController::class, 'index']);
-    
-    // Jobs (public for viewing)
-    Route::get('/jobs', [JobController::class, 'index']);
-    Route::get('/jobs/{id}', [JobController::class, 'show']);
-    
-    // Fundi profiles (public for viewing)
-    Route::get('/fundi/{id}', [UserController::class, 'getFundiProfile']);
-    
-    // Portfolio (public for viewing)
-    Route::get('/portfolio/{fundi_id}', [PortfolioController::class, 'getFundiPortfolio']);
-    
-    // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+});
+
+// Protected routes (all other routes require authentication)
+Route::prefix('v1')->middleware('auth.sanctum')->group(function () {
+        
+        // Simple protected test route
+        Route::get('/test-protected', function() {
+            return response()->json(['message' => 'Protected API is working']);
+        });
+        
+        
+        // Jobs (authenticated)
+        Route::get('/jobs', [JobController::class, 'index']);
+        Route::get('/jobs/{id}', [JobController::class, 'show']);
+        
+        // Fundi profiles (now requires authentication)
+        Route::get('/fundi/{id}', [UserController::class, 'getFundiProfile']);
+        
+        // Portfolio (now requires authentication)
+        Route::get('/portfolio/{fundi_id}', [PortfolioController::class, 'getFundiPortfolio']);
         
         // Authentication
         Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -70,8 +90,10 @@ Route::prefix('v1')->group(function () {
         // Job applications
         Route::middleware('role:fundi')->group(function () {
             Route::post('/jobs/{job_id}/apply', [JobApplicationController::class, 'apply']);
-            Route::get('/my-applications', [JobApplicationController::class, 'getMyApplications']);
         });
+        
+        // Applications accessible by both fundis and customers
+        Route::get('/my-applications', [JobApplicationController::class, 'getMyApplications']);
         
         Route::middleware('role:customer,admin')->group(function () {
             Route::get('/jobs/{job_id}/applications', [JobApplicationController::class, 'getJobApplications']);
@@ -189,5 +211,4 @@ Route::prefix('v1')->group(function () {
             Route::get('/audit-logs/api-errors', [AuditController::class, 'apiErrors']);
             Route::get('/audit-logs/export', [AuditController::class, 'export']);
         });
-    });
 });

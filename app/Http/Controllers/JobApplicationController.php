@@ -179,17 +179,29 @@ class JobApplicationController extends Controller
         try {
             $user = $request->user();
 
-            if (!$user->isFundi()) {
+            if (!$user->isFundi() && !$user->isCustomer() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only fundis can view their applications'
+                    'message' => 'Only fundis and customers can view their applications'
                 ], 403);
             }
 
-            $applications = JobApplication::with(['job.customer', 'job.category'])
-                ->where('fundi_id', $user->id)
-                ->orderBy('created_at', 'desc')
-                ->paginate(15);
+            $query = JobApplication::with(['job.customer', 'job.category']);
+            
+            if ($user->isFundi()) {
+                // Fundis see applications they made
+                $query->where('fundi_id', $user->id);
+            } elseif ($user->isCustomer()) {
+                // Customers see applications for their jobs
+                $query->whereHas('job', function($q) use ($user) {
+                    $q->where('customer_id', $user->id);
+                });
+            } elseif ($user->isAdmin()) {
+                // Admins see all applications
+                // No additional where clause needed
+            }
+
+            $applications = $query->orderBy('created_at', 'desc')->paginate(15);
 
             return response()->json([
                 'success' => true,

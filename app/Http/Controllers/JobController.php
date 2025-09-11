@@ -70,7 +70,7 @@ class JobController extends Controller
         try {
             $user = $request->user();
 
-            if (!$user->isCustomer()) {
+            if (!$user->isCustomer() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Only customers can create jobs'

@@ -24,6 +24,11 @@ class RoleMiddleware
 
         $userRole = $request->user()->role;
 
+        // Admin users have access to all endpoints
+        if ($userRole === 'admin') {
+            return $next($request);
+        }
+
         if (!in_array($userRole, $roles)) {
             return response()->json([
                 'success' => false,

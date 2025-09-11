@@ -1,0 +1,382 @@
+{
+    "timestamp": "2025-09-11 12:59:15",
+    "total_tests": 39,
+    "passed_tests": 36,
+    "failed_tests": 3,
+    "success_rate": 92.31,
+    "role_statistics": {
+        "public": {
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+        },
+        "admin": {
+            "total": 11,
+            "passed": 11,
+            "failed": 0
+        },
+        "customer": {
+            "total": 12,
+            "passed": 10,
+            "failed": 2
+        },
+        "fundi": {
+            "total": 10,
+            "passed": 9,
+            "failed": 1
+        }
+    },
+    "test_results": [
+        {
+            "test": "API Health Check",
+            "endpoint": "\/test",
+            "method": "GET",
+            "role": "public",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Debug Auth",
+            "endpoint": "\/debug\/auth",
+            "method": "GET",
+            "role": "public",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Login as admin",
+            "endpoint": "\/auth\/login",
+            "method": "POST",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Login as customer",
+            "endpoint": "\/auth\/login",
+            "method": "POST",
+            "role": "customer",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Login as fundi",
+            "endpoint": "\/auth\/login",
+            "method": "POST",
+            "role": "fundi",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Profile (Admin)",
+            "endpoint": "\/auth\/me",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Profile (Customer)",
+            "endpoint": "\/auth\/me",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Profile (Fundi)",
+            "endpoint": "\/auth\/me",
+            "method": "GET",
+            "role": "fundi",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Categories (Admin)",
+            "endpoint": "\/categories",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Categories (Customer)",
+            "endpoint": "\/categories",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Categories (Fundi)",
+            "endpoint": "\/categories",
+            "method": "GET",
+            "role": "fundi",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Jobs (Admin)",
+            "endpoint": "\/jobs",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Jobs (Customer)",
+            "endpoint": "\/jobs",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Jobs (Fundi)",
+            "endpoint": "\/jobs",
+            "method": "GET",
+            "role": "fundi",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Notifications (Admin)",
+            "endpoint": "\/notifications",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Notifications (Customer)",
+            "endpoint": "\/notifications",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Notifications (Fundi)",
+            "endpoint": "\/notifications",
+            "method": "GET",
+            "role": "fundi",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get User Profile (Admin)",
+            "endpoint": "\/users\/me",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get User Profile (Customer)",
+            "endpoint": "\/users\/me",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get User Profile (Fundi)",
+            "endpoint": "\/users\/me",
+            "method": "GET",
+            "role": "fundi",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Create Job (Customer)",
+            "endpoint": "\/jobs",
+            "method": "POST",
+            "role": "customer",
+            "expected_code": 201,
+            "actual_code": 422,
+            "passed": false
+        },
+        {
+            "test": "Get My Applications (Customer)",
+            "endpoint": "\/my-applications",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 200,
+            "actual_code": 403,
+            "passed": false
+        },
+        {
+            "test": "Get My Ratings (Customer)",
+            "endpoint": "\/ratings\/my-ratings",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get My Applications (Fundi)",
+            "endpoint": "\/my-applications",
+            "method": "GET",
+            "role": "fundi",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Update Fundi Profile (Fundi)",
+            "endpoint": "\/users\/me\/fundi-profile",
+            "method": "PATCH",
+            "role": "fundi",
+            "expected_code": 200,
+            "actual_code": 422,
+            "passed": false
+        },
+        {
+            "test": "Get All Users (Admin)",
+            "endpoint": "\/admin\/users",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get All Jobs (Admin)",
+            "endpoint": "\/admin\/jobs",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get All Payments (Admin)",
+            "endpoint": "\/admin\/payments",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get System Health (Admin)",
+            "endpoint": "\/admin\/monitor\/system-health",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Get Settings (Admin)",
+            "endpoint": "\/admin\/settings",
+            "method": "GET",
+            "role": "admin",
+            "expected_code": 200,
+            "actual_code": 200,
+            "passed": true
+        },
+        {
+            "test": "Customer \u2192 Fundi Applications",
+            "endpoint": "\/my-applications",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 403,
+            "actual_code": 403,
+            "passed": true
+        },
+        {
+            "test": "Customer \u2192 Fundi Profile Update",
+            "endpoint": "\/users\/me\/fundi-profile",
+            "method": "PATCH",
+            "role": "customer",
+            "expected_code": 403,
+            "actual_code": 403,
+            "passed": true
+        },
+        {
+            "test": "Fundi \u2192 Customer Ratings",
+            "endpoint": "\/ratings\/my-ratings",
+            "method": "GET",
+            "role": "fundi",
+            "expected_code": 403,
+            "actual_code": 403,
+            "passed": true
+        },
+        {
+            "test": "Customer \u2192 Admin Users",
+            "endpoint": "\/admin\/users",
+            "method": "GET",
+            "role": "customer",
+            "expected_code": 403,
+            "actual_code": 403,
+            "passed": true
+        },
+        {
+            "test": "Fundi \u2192 Admin Settings",
+            "endpoint": "\/admin\/settings",
+            "method": "GET",
+            "role": "fundi",
+            "expected_code": 403,
+            "actual_code": 403,
+            "passed": true
+        },
+        {
+            "test": "Access without token",
+            "endpoint": "\/auth\/me",
+            "method": "GET",
+            "role": "public",
+            "expected_code": 401,
+            "actual_code": 401,
+            "passed": true
+        },
+        {
+            "test": "Invalid token",
+            "endpoint": "\/auth\/me",
+            "method": "GET",
+            "role": "public",
+            "expected_code": 401,
+            "actual_code": 401,
+            "passed": true
+        },
+        {
+            "test": "Non-existent endpoint",
+            "endpoint": "\/non-existent",
+            "method": "GET",
+            "role": "public",
+            "expected_code": 404,
+            "actual_code": 404,
+            "passed": true
+        },
+        {
+            "test": "Invalid login",
+            "endpoint": "\/auth\/login",
+            "method": "POST",
+            "role": "public",
+            "expected_code": 401,
+            "actual_code": 401,
+            "passed": true
+        }
+    ]
+}
