@@ -21,9 +21,17 @@ class User extends Authenticatable
     protected $fillable = [
         'phone',
         'password',
-        'role',
+        'roles',
         'status',
         'nida_number',
+        'full_name',
+        'email',
+        'location',
+        'bio',
+        'skills',
+        'languages',
+        'veta_certificate',
+        'portfolio_images',
     ];
 
     /**
@@ -45,6 +53,10 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'roles' => 'array',
+            'skills' => 'array',
+            'languages' => 'array',
+            'portfolio_images' => 'array',
         ];
     }
 
@@ -54,6 +66,14 @@ class User extends Authenticatable
     public function fundiProfile()
     {
         return $this->hasOne(FundiProfile::class);
+    }
+
+    /**
+     * Get the fundi applications made by the user.
+     */
+    public function fundiApplications()
+    {
+        return $this->hasMany(FundiApplication::class);
     }
 
     /**
@@ -78,6 +98,40 @@ class User extends Authenticatable
     public function portfolio()
     {
         return $this->hasMany(Portfolio::class, 'fundi_id');
+    }
+
+    /**
+     * Get the approved and visible portfolio items for the user (as fundi).
+     */
+    public function visiblePortfolio()
+    {
+        return $this->hasMany(Portfolio::class, 'fundi_id')
+            ->where('status', 'approved')
+            ->where('is_visible', true);
+    }
+
+    /**
+     * Check if user can add more portfolio items (max 5)
+     */
+    public function canAddPortfolioItem(): bool
+    {
+        return $this->portfolio()->count() < 5;
+    }
+
+    /**
+     * Get the number of portfolio items the user has
+     */
+    public function getPortfolioCount(): int
+    {
+        return $this->portfolio()->count();
+    }
+
+    /**
+     * Get the number of visible portfolio items the user has
+     */
+    public function getVisiblePortfolioCount(): int
+    {
+        return $this->visiblePortfolio()->count();
     }
 
     /**
@@ -120,27 +174,185 @@ class User extends Authenticatable
         return $this->hasMany(RatingReview::class, 'customer_id');
     }
 
+
     /**
-     * Check if user is a fundi.
+     * Check if user has multiple roles (customer + fundi, etc.)
      */
-    public function isFundi()
+    public function hasMultipleRoles()
     {
-        return $this->role === 'fundi';
+        return count($this->roles) > 1;
     }
 
     /**
-     * Check if user is a customer.
+     * Get all roles for the user
+     */
+    public function getRolesAttribute()
+    {
+        if (isset($this->attributes['roles']) && $this->attributes['roles']) {
+            return json_decode($this->attributes['roles'], true) ?: ['customer'];
+        }
+        return ['customer'];
+    }
+
+    /**
+     * Check if user has a specific role
+     */
+    public function hasRole($role)
+    {
+        return in_array($role, $this->roles);
+    }
+
+    /**
+     * Check if user has a specific permission
+     */
+    public function hasPermission($permission)
+    {
+        // Get all roles for this user
+        $userRoles = \App\Models\Role::whereIn('name', $this->roles)->get();
+        
+        // Check if any of the user's roles have the required permission
+        foreach ($userRoles as $role) {
+            if ($role->hasPermission($permission)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if user is a customer
      */
     public function isCustomer()
     {
-        return $this->role === 'customer';
+        return $this->hasRole('customer');
     }
 
     /**
-     * Check if user is an admin.
+     * Check if user is a fundi
+     */
+    public function isFundi()
+    {
+        return $this->hasRole('fundi');
+    }
+
+    /**
+     * Check if user is an admin
      */
     public function isAdmin()
     {
-        return $this->role === 'admin';
+        return $this->hasRole('admin');
+    }
+
+    /**
+     * Check if user can be promoted to fundi
+     */
+    public function canBecomeFundi()
+    {
+        return $this->isCustomer() && !$this->isFundi();
+    }
+
+    /**
+     * Check if user can be promoted to admin
+     */
+    public function canBecomeAdmin()
+    {
+        return !$this->isAdmin();
+    }
+
+    /**
+     * Add a role to the user
+     */
+    public function addRole($role)
+    {
+        if (!in_array($role, $this->roles)) {
+            $roles = $this->roles;
+            $roles[] = $role;
+            $this->update(['roles' => $roles]);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove a role from the user
+     */
+    public function removeRole($role)
+    {
+        if (in_array($role, $this->roles) && count($this->roles) > 1) {
+            $roles = array_filter($this->roles, fn($r) => $r !== $role);
+            $this->update(['roles' => array_values($roles)]);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Promote user to fundi role
+     */
+    public function promoteToFundi()
+    {
+        return $this->addRole('fundi');
+    }
+
+    /**
+     * Promote user to admin role
+     */
+    public function promoteToAdmin()
+    {
+        return $this->addRole('admin');
+    }
+
+    /**
+     * Demote user to customer role only
+     */
+    public function demoteToCustomer()
+    {
+        $this->update(['roles' => ['customer']]);
+        return true;
+    }
+
+    /**
+     * Get primary role (first role in the array)
+     */
+    public function getPrimaryRoleAttribute()
+    {
+        return $this->roles[0] ?? 'customer';
+    }
+
+    /**
+     * Get role display name
+     */
+    public function getRoleDisplayNameAttribute()
+    {
+        $roleNames = array_map(fn($role) => match($role) {
+            'customer' => 'Customer',
+            'fundi' => 'Fundi',
+            'admin' => 'Admin',
+            default => 'Unknown',
+        }, $this->roles);
+
+        return implode(' + ', $roleNames);
+    }
+
+    /**
+     * Get role description
+     */
+    public function getRoleDescriptionAttribute()
+    {
+        $descriptions = [];
+        if ($this->isCustomer()) $descriptions[] = 'Can post jobs and hire fundis';
+        if ($this->isFundi()) $descriptions[] = 'Can apply for jobs and provide services';
+        if ($this->isAdmin()) $descriptions[] = 'Can manage the platform and users';
+        
+        return implode(' | ', $descriptions);
+    }
+
+    /**
+     * Get all roles for the user (backward compatibility)
+     */
+    public function roles()
+    {
+        return collect($this->roles);
     }
 }

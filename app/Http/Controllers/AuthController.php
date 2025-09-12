@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Register a new user
+     * Register a new user (always defaults to customer role)
      */
     public function register(Request $request): JsonResponse
     {
@@ -21,8 +21,10 @@ class AuthController extends Controller
             $validator = Validator::make($request->all(), [
                 'phone' => 'required|string|max:15|unique:users',
                 'password' => 'required|string|min:6',
-                'role' => 'required|in:customer,fundi,admin',
                 'nida_number' => 'required|string|max:20',
+                // Roles are optional and will default to ['customer']
+                'roles' => 'sometimes|array',
+                'roles.*' => 'string|in:customer,fundi,admin,moderator,premium_customer',
             ]);
 
             if ($validator->fails()) {
@@ -33,10 +35,13 @@ class AuthController extends Controller
                 ], 422);
             }
 
+            // Always default to customer role unless explicitly specified
+            $roles = $request->get('roles', ['customer']);
+
             $user = User::create([
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
-                'role' => $request->role,
+                'roles' => $roles, // Will be ['customer'] by default
                 'nida_number' => $request->nida_number,
             ]);
 
@@ -55,7 +60,7 @@ class AuthController extends Controller
                 'data' => [
                     'id' => $user->id,
                     'phone' => $user->phone,
-                    'role' => $user->role,
+                    'roles' => $user->roles,
                     'token' => $token->plainTextToken,
                 ]
             ], 201);
@@ -119,7 +124,7 @@ class AuthController extends Controller
                 'data' => [
                     'id' => $user->id,
                     'phone' => $user->phone,
-                    'role' => $user->role,
+                    'roles' => $user->roles,
                     'token' => $token->plainTextToken,
                 ]
             ]);

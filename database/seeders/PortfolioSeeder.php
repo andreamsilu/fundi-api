@@ -107,16 +107,50 @@ class PortfolioSeeder extends Seeder
                 $description = $portfolioDescriptions[$titleIndex];
                 $skills = $skillsUsed[$titleIndex];
                 
-                Portfolio::create([
+                $statuses = ['pending', 'approved', 'rejected'];
+                $status = $statuses[array_rand($statuses)];
+                
+                $portfolio = Portfolio::create([
                     'fundi_id' => $fundi->id,
                     'title' => $title,
                     'description' => $description,
                     'skills_used' => json_encode($skills),
                     'duration_hours' => rand(8, 120), // 1-15 days of work
                     'budget' => rand(50000, 2000000), // 50,000 - 2,000,000 TZS
+                    'status' => $status,
+                    'is_visible' => $status === 'approved',
                     'created_at' => now()->subDays(rand(0, 180)), // Within last 6 months
                     'updated_at' => now()->subDays(rand(0, 30))
                 ]);
+
+                // If approved or rejected, set approval details
+                if ($status === 'approved') {
+                    $customers = User::where('role', 'customer')->get();
+                    if ($customers->isNotEmpty()) {
+                        $portfolio->update([
+                            'approved_by' => $customers->random()->id,
+                            'approved_at' => now()->subDays(rand(0, 30))
+                        ]);
+                    }
+                } elseif ($status === 'rejected') {
+                    $customers = User::where('role', 'customer')->get();
+                    if ($customers->isNotEmpty()) {
+                        $rejectionReasons = [
+                            'Work quality does not meet standards',
+                            'Incomplete portfolio submission',
+                            'Missing required documentation',
+                            'Portfolio does not meet requirements',
+                            'Poor workmanship shown',
+                            'Incomplete project scope',
+                            'Missing safety requirements'
+                        ];
+                        $portfolio->update([
+                            'rejection_reason' => $rejectionReasons[array_rand($rejectionReasons)],
+                            'approved_by' => $customers->random()->id,
+                            'approved_at' => now()->subDays(rand(0, 30))
+                        ]);
+                    }
+                }
             }
         }
     }

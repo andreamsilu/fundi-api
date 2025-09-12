@@ -7,19 +7,27 @@ use App\Models\PortfolioMedia;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class PortfolioController extends Controller
 {
     /**
-     * Get fundi portfolio
+     * Get fundi portfolio (visible items only for customers)
      */
     public function getFundiPortfolio(Request $request, $fundiId): JsonResponse
     {
         try {
-            $portfolio = Portfolio::with('media')
-                ->where('fundi_id', $fundiId)
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $user = Auth::user();
+            $isOwner = $user && $user->id == $fundiId;
+            
+            $query = Portfolio::with('media')->where('fundi_id', $fundiId);
+            
+            // If not the owner, only show approved and visible items
+            if (!$isOwner) {
+                $query->where('status', 'approved')->where('is_visible', true);
+            }
+            
+            $portfolio = $query->orderBy('created_at', 'desc')->get();
 
             return response()->json([
                 'success' => true,
@@ -37,18 +45,65 @@ class PortfolioController extends Controller
     }
 
     /**
+     * Get current user's portfolio
+     */
+    public function getMyPortfolio(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user->isFundi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only fundis can view their portfolio'
+                ], 403);
+            }
+
+            $portfolio = Portfolio::with('media')
+                ->where('fundi_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Portfolio retrieved successfully',
+                'data' => $portfolio,
+                'portfolio_count' => $user->getPortfolioCount(),
+                'visible_count' => $user->getVisiblePortfolioCount(),
+                'can_add_more' => $user->canAddPortfolioItem()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve portfolio',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving portfolio'
+            ], 500);
+        }
+    }
+
+    /**
      * Create portfolio item
      */
     public function store(Request $request): JsonResponse
     {
         try {
-            $user = $request->user();
+            $user = Auth::user();
 
             if (!$user->isFundi()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Only fundis can create portfolio items'
                 ], 403);
+            }
+
+            // Check portfolio work limit (max 5)
+            if (!$user->canAddPortfolioItem()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have reached the maximum limit of 5 portfolio items. Please delete an existing item to add a new one.',
+                    'portfolio_count' => $user->getPortfolioCount()
+                ], 400);
             }
 
             $validator = Validator::make($request->all(), [
@@ -74,12 +129,16 @@ class PortfolioController extends Controller
                 'skills_used' => $request->skills_used,
                 'duration_hours' => $request->duration_hours,
                 'budget' => $request->budget,
+                'status' => 'pending', // New items need approval
+                'is_visible' => false, // Not visible until approved
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Portfolio item created successfully',
-                'data' => $portfolio
+                'message' => 'Portfolio item created successfully and submitted for approval',
+                'data' => $portfolio,
+                'portfolio_count' => $user->getPortfolioCount() + 1,
+                'can_add_more' => $user->getPortfolioCount() < 4 // 4 because we just added one
             ], 201);
 
         } catch (\Exception $e) {
@@ -184,6 +243,49 @@ class PortfolioController extends Controller
                 'success' => false,
                 'message' => 'Failed to delete portfolio item',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while deleting portfolio item'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get portfolio status and limits
+     */
+    public function getPortfolioStatus(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user->isFundi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only fundis can view portfolio status'
+                ], 403);
+            }
+
+            $portfolioCount = $user->getPortfolioCount();
+            $visibleCount = $user->getVisiblePortfolioCount();
+            $pendingCount = $user->portfolio()->where('status', 'pending')->count();
+            $rejectedCount = $user->portfolio()->where('status', 'rejected')->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_items' => $portfolioCount,
+                    'visible_items' => $visibleCount,
+                    'pending_items' => $pendingCount,
+                    'rejected_items' => $rejectedCount,
+                    'can_add_more' => $user->canAddPortfolioItem(),
+                    'max_items' => 5,
+                    'remaining_slots' => max(0, 5 - $portfolioCount)
+                ],
+                'message' => 'Portfolio status retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve portfolio status',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving portfolio status'
             ], 500);
         }
     }

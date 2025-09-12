@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Job;
 use App\Models\RatingReview;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 
 class RatingReviewSeeder extends Seeder
@@ -71,7 +72,7 @@ class RatingReviewSeeder extends Seeder
                     ? $reviewTemplates[array_rand($reviewTemplates)]
                     : $negativeReviewTemplates[array_rand($negativeReviewTemplates)];
 
-                RatingReview::updateOrCreate(
+                DB::table('ratings_reviews')->updateOrInsert(
                     ['customer_id' => $customer->id, 'fundi_id' => $fundi->id, 'job_id' => $job->id],
                     [
                         'rating' => $rating,
@@ -95,7 +96,7 @@ class RatingReviewSeeder extends Seeder
                     : $negativeReviewTemplates[array_rand($negativeReviewTemplates)];
 
                 $randomJob = $completedJobs->random();
-                RatingReview::updateOrCreate(
+                DB::table('ratings_reviews')->updateOrInsert(
                     ['customer_id' => $customer->id, 'fundi_id' => $fundi->id, 'job_id' => $randomJob->id],
                     [
                         'rating' => $rating,

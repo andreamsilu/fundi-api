@@ -1,0 +1,320 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use App\Models\JobPosting;
+use App\Models\Portfolio;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
+class FeedController extends Controller
+{
+    /**
+     * Get fundi feed for customers (with approved and visible portfolio items)
+     */
+    public function getFundiFeed(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user->isCustomer()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only customers can view fundi feed'
+                ], 403);
+            }
+
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            $search = $request->get('search');
+            $location = $request->get('location');
+            $skills = $request->get('skills');
+            $minRating = $request->get('min_rating');
+
+            $query = User::with(['visiblePortfolio.media', 'fundiProfile'])
+                ->where('role', 'fundi')
+                ->where('status', 'active');
+
+            // Apply search filter
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            // Apply location filter (if location data is available)
+            if ($location) {
+                // This would need to be implemented based on your location data structure
+                // For now, we'll skip location filtering
+            }
+
+            // Apply skills filter
+            if ($skills) {
+                $skillsArray = is_array($skills) ? $skills : explode(',', $skills);
+                $query->whereHas('visiblePortfolio', function($q) use ($skillsArray) {
+                    foreach ($skillsArray as $skill) {
+                        $q->orWhere('skills_used', 'like', "%{$skill}%");
+                    }
+                });
+            }
+
+            // Apply minimum rating filter
+            if ($minRating) {
+                $query->whereHas('ratingsReceived', function($q) use ($minRating) {
+                    $q->havingRaw('AVG(rating) >= ?', [$minRating]);
+                });
+            }
+
+            $fundis = $query->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            // Transform the data to include portfolio items in the feed
+            $fundis->getCollection()->transform(function ($fundi) {
+                $fundi->portfolio_items = $fundi->visiblePortfolio;
+                unset($fundi->visiblePortfolio);
+                return $fundi;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $fundis,
+                'message' => 'Fundi feed retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve fundi feed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get job feed for fundis
+     */
+    public function getJobFeed(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user->isFundi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only fundis can view job feed'
+                ], 403);
+            }
+
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            $search = $request->get('search');
+            $category = $request->get('category');
+            $minBudget = $request->get('min_budget');
+            $maxBudget = $request->get('max_budget');
+            $location = $request->get('location');
+
+            $query = JobPosting::with(['customer', 'category', 'media'])
+                ->where('status', 'open')
+                ->where('customer_id', '!=', $user->id); // Exclude own job postings
+
+            // Apply search filter
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            // Apply category filter
+            if ($category) {
+                $query->where('category_id', $category);
+            }
+
+            // Apply budget filters
+            if ($minBudget) {
+                $query->where('budget', '>=', $minBudget);
+            }
+            if ($maxBudget) {
+                $query->where('budget', '<=', $maxBudget);
+            }
+
+            // Apply location filter (if location data is available)
+            if ($location) {
+                // This would need to be implemented based on your location data structure
+                // For now, we'll skip location filtering
+            }
+
+            $jobs = $query->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'success' => true,
+                'data' => $jobs,
+                'message' => 'Job feed retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve job feed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get fundi profile details for customers
+     */
+    public function getFundiProfile(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user->isCustomer()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only customers can view fundi profiles'
+                ], 403);
+            }
+
+            $fundi = User::with(['visiblePortfolio.media', 'fundiProfile', 'ratingsReceived'])
+                ->where('id', $id)
+                ->where('role', 'fundi')
+                ->where('status', 'active')
+                ->first();
+
+            if (!$fundi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Fundi not found'
+                ], 404);
+            }
+
+            // Calculate average rating
+            $averageRating = $fundi->ratingsReceived()->avg('rating') ?? 0;
+            $fundi->average_rating = round($averageRating, 1);
+            $fundi->total_ratings = $fundi->ratingsReceived()->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => $fundi,
+                'message' => 'Fundi profile retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve fundi profile: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get job details for fundis
+     */
+    public function getJobDetails(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user->isFundi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only fundis can view job details'
+                ], 403);
+            }
+
+            $job = JobPosting::with(['customer', 'category', 'media'])
+                ->where('id', $id)
+                ->where('status', 'open')
+                ->first();
+
+            if (!$job) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Job not found or not available'
+                ], 404);
+            }
+
+            // Check if fundi has already applied for this job
+            $hasApplied = $user->jobApplications()
+                ->where('job_posting_id', $id)
+                ->exists();
+
+            $job->has_applied = $hasApplied;
+
+            return response()->json([
+                'success' => true,
+                'data' => $job,
+                'message' => 'Job details retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve job details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get nearby fundis based on location
+     */
+    public function getNearbyFundis(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user->isCustomer()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only customers can view nearby fundis'
+                ], 403);
+            }
+
+            $validator = \Validator::make($request->all(), [
+                'latitude' => 'required|numeric|between:-90,90',
+                'longitude' => 'required|numeric|between:-180,180',
+                'radius' => 'integer|min:1|max:100' // radius in kilometers
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $latitude = $request->latitude;
+            $longitude = $request->longitude;
+            $radius = $request->get('radius', 10); // default 10km radius
+
+            // This is a simplified version - you might want to use a proper geospatial query
+            $fundis = User::with(['visiblePortfolio.media', 'fundiProfile'])
+                ->where('role', 'fundi')
+                ->where('status', 'active')
+                ->get()
+                ->filter(function ($fundi) use ($latitude, $longitude, $radius) {
+                    // This would need proper geospatial calculation
+                    // For now, we'll return all fundis
+                    return true;
+                })
+                ->take(20); // Limit to 20 nearby fundis
+
+            return response()->json([
+                'success' => true,
+                'data' => $fundis,
+                'message' => 'Nearby fundis retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve nearby fundis: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}

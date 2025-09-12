@@ -115,6 +115,144 @@ class AdminController extends Controller
     }
 
     /**
+     * Promote user to fundi role
+     */
+    public function promoteToFundi(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            if (!$user->canBecomeFundi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User cannot be promoted to fundi role. Current roles: ' . implode(', ', $user->roles)
+                ], 400);
+            }
+
+            $success = $user->promoteToFundi();
+
+            if ($success) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'User promoted to fundi successfully',
+                    'data' => $user->fresh()
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to promote user to fundi'
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to promote user to fundi',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while promoting user'
+            ], 500);
+        }
+    }
+
+    /**
+     * Promote user to admin role
+     */
+    public function promoteToAdmin(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            if (!$user->canBecomeAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User cannot be promoted to admin role. Current roles: ' . implode(', ', $user->roles)
+                ], 400);
+            }
+
+            $success = $user->promoteToAdmin();
+
+            if ($success) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'User promoted to admin successfully',
+                    'data' => $user->fresh()
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to promote user to admin'
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to promote user to admin',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while promoting user'
+            ], 500);
+        }
+    }
+
+    /**
+     * Demote user to customer role
+     */
+    public function demoteToCustomer(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            if ($user->isCustomer()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is already a customer'
+                ], 400);
+            }
+
+            $success = $user->demoteToCustomer();
+
+            if ($success) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'User demoted to customer successfully',
+                    'data' => $user->fresh()
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to demote user to customer'
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to demote user to customer',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while demoting user'
+            ], 500);
+        }
+    }
+
+    /**
      * Delete user
      */
     public function deleteUser(Request $request, $id): JsonResponse
