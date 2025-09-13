@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 
 /**
@@ -39,6 +40,9 @@ class CustomAuth
         $request->setUserResolver(function () use ($user) {
             return $user;
         });
+        
+        // Set user in Auth facade
+        Auth::setUser($user);
         
         // Add user to request for easy access
         $request->merge(['user' => $user]);
