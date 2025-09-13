@@ -18,26 +18,27 @@ class Authenticate extends Middleware
      */
     public function handle($request, Closure $next, ...$guards)
     {
-        if ($this->authenticate($request, $guards)) {
+        try {
+            $this->authenticate($request, $guards);
             return $next($request);
-        }
+        } catch (\Illuminate\Auth\AuthenticationException $e) {
+            // For API requests, return JSON response instead of redirecting
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                    'error' => 'Authentication required'
+                ], 401);
+            }
 
-        // For API requests, return JSON response instead of redirecting
-        if ($request->expectsJson() || $request->is('api/*')) {
+            // For web requests, redirect to login (if login route exists)
+            // Since this is an API-only application, we'll return a JSON response
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthenticated',
                 'error' => 'Authentication required'
             ], 401);
         }
-
-        // For web requests, redirect to login (if login route exists)
-        // Since this is an API-only application, we'll return a JSON response
-        return response()->json([
-            'success' => false,
-            'message' => 'Unauthenticated',
-            'error' => 'Authentication required'
-        ], 401);
     }
 
 }
