@@ -42,7 +42,7 @@ class AuthController extends Controller
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
                 'roles' => $roles, // Will be ['customer'] by default
-                'nida_number' => $request->nida_number, // Will be null if not provided during registration
+                'nida_number' => $request->nida_number ?? 'N/A', // Provide default value if not provided
             ]);
 
             $token = $user->createToken(
