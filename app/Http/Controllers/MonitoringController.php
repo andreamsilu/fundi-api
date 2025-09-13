@@ -18,8 +18,8 @@ class MonitoringController extends Controller
     {
         try {
             $activeUsers = User::where('status', 'active')->count();
-            $fundis = User::where('role', 'fundi')->where('status', 'active')->count();
-            $customers = User::where('role', 'customer')->where('status', 'active')->count();
+            $fundis = User::whereJsonContains('roles', 'fundi')->where('status', 'active')->count();
+            $customers = User::whereJsonContains('roles', 'customer')->where('status', 'active')->count();
 
             return response()->json([
                 'success' => true,

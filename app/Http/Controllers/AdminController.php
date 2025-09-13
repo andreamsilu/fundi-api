@@ -290,7 +290,7 @@ class AdminController extends Controller
     {
         try {
             $fundiProfiles = User::with('fundiProfile')
-                ->where('role', 'fundi')
+                ->whereJsonContains('roles', 'fundi')
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
 

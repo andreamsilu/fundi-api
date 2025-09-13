@@ -35,7 +35,7 @@ class FeedController extends Controller
             $minRating = $request->get('min_rating');
 
             $query = User::with(['visiblePortfolio.media', 'fundiProfile'])
-                ->where('role', 'fundi')
+                ->whereJsonContains('roles', 'fundi')
                 ->where('status', 'active');
 
             // Apply search filter
@@ -181,7 +181,7 @@ class FeedController extends Controller
 
             $fundi = User::with(['visiblePortfolio.media', 'fundiProfile', 'ratingsReceived'])
                 ->where('id', $id)
-                ->where('role', 'fundi')
+                ->whereJsonContains('roles', 'fundi')
                 ->where('status', 'active')
                 ->first();
 
@@ -294,7 +294,7 @@ class FeedController extends Controller
 
             // This is a simplified version - you might want to use a proper geospatial query
             $fundis = User::with(['visiblePortfolio.media', 'fundiProfile'])
-                ->where('role', 'fundi')
+                ->whereJsonContains('roles', 'fundi')
                 ->where('status', 'active')
                 ->get()
                 ->filter(function ($fundi) use ($latitude, $longitude, $radius) {
