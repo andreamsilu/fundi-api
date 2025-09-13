@@ -14,8 +14,8 @@ class JobSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get customer users
-        $customers = User::where('role', 'customer')->get();
+        // Get customer users (users who have 'customer' in their roles array)
+        $customers = User::whereJsonContains('roles', 'customer')->get();
         $categories = Category::all();
 
         if ($customers->isEmpty() || $categories->isEmpty()) {

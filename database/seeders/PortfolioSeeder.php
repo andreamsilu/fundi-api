@@ -13,8 +13,8 @@ class PortfolioSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get fundi users
-        $fundis = User::where('role', 'fundi')->where('status', 'active')->get();
+        // Get fundi users (users who have 'fundi' in their roles array)
+        $fundis = User::whereJsonContains('roles', 'fundi')->where('status', 'active')->get();
 
         if ($fundis->isEmpty()) {
             return;
@@ -125,7 +125,7 @@ class PortfolioSeeder extends Seeder
 
                 // If approved or rejected, set approval details
                 if ($status === 'approved') {
-                    $customers = User::where('role', 'customer')->get();
+                    $customers = User::whereJsonContains('roles', 'customer')->get();
                     if ($customers->isNotEmpty()) {
                         $portfolio->update([
                             'approved_by' => $customers->random()->id,
@@ -133,7 +133,7 @@ class PortfolioSeeder extends Seeder
                         ]);
                     }
                 } elseif ($status === 'rejected') {
-                    $customers = User::where('role', 'customer')->get();
+                    $customers = User::whereJsonContains('roles', 'customer')->get();
                     if ($customers->isNotEmpty()) {
                         $rejectionReasons = [
                             'Work quality does not meet standards',

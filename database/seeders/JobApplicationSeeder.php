@@ -14,8 +14,8 @@ class JobApplicationSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get fundi users and open jobs
-        $fundis = User::where('role', 'fundi')->where('status', 'active')->get();
+        // Get fundi users and open jobs (users who have 'fundi' in their roles array)
+        $fundis = User::whereJsonContains('roles', 'fundi')->where('status', 'active')->get();
         $openJobs = Job::where('status', 'open')->get();
 
         if ($fundis->isEmpty() || $openJobs->isEmpty()) {

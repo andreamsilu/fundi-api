@@ -21,7 +21,7 @@ class AuthController extends Controller
             $validator = Validator::make($request->all(), [
                 'phone' => 'required|string|max:15|unique:users',
                 'password' => 'required|string|min:6',
-                'nida_number' => 'required|string|max:20',
+                'nida_number' => 'sometimes|string|max:20', // Optional during registration, will be filled in profile
                 // Roles are optional and will default to ['customer']
                 'roles' => 'sometimes|array',
                 'roles.*' => 'string|in:customer,fundi,admin,moderator,premium_customer',
@@ -42,7 +42,7 @@ class AuthController extends Controller
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
                 'roles' => $roles, // Will be ['customer'] by default
-                'nida_number' => $request->nida_number,
+                'nida_number' => $request->nida_number, // Will be null if not provided during registration
             ]);
 
             $token = $user->createToken(
@@ -188,6 +188,356 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Send password reset OTP
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone_number' => 'required|string|exists:users,phone',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Generate OTP (6 digits)
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            
+            // Store OTP in cache for 10 minutes
+            \Cache::put('password_reset_otp_' . $request->phone_number, $otp, 600);
+
+            // Send SMS with OTP
+            $this->sendSmsOtp($request->phone_number, $otp, 'Password Reset');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset OTP sent successfully',
+                'data' => [
+                    'phone_number' => $request->phone_number,
+                    'otp' => config('app.debug') ? $otp : null // Only show OTP in debug mode
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send password reset OTP',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while sending OTP'
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password with OTP verification
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone_number' => 'required|string|exists:users,phone',
+                'otp' => 'required|string|size:6',
+                'new_password' => 'required|string|min:6',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Verify OTP
+            $storedOtp = \Cache::get('password_reset_otp_' . $request->phone_number);
+            
+            if (!$storedOtp || $storedOtp !== $request->otp) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid or expired OTP'
+                ], 400);
+            }
+
+            // Find user and update password
+            $user = User::where('phone', $request->phone_number)->first();
+            $user->update([
+                'password' => Hash::make($request->new_password)
+            ]);
+
+            // Clear OTP from cache
+            \Cache::forget('password_reset_otp_' . $request->phone_number);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset password',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while resetting password'
+            ], 500);
+        }
+    }
+
+    /**
+     * Send OTP for phone verification
+     */
+    public function sendOtp(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone_number' => 'required|string|max:15',
+                'type' => 'required|string|in:registration,password_reset,phone_change',
+                'user_id' => 'sometimes|integer|exists:users,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Generate OTP (6 digits)
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            
+            // Store OTP in cache for 10 minutes
+            $cacheKey = 'otp_' . $request->phone_number . '_' . $request->type;
+            \Cache::put($cacheKey, $otp, 600);
+
+            // Send SMS with OTP
+            $messageType = ucfirst(str_replace('_', ' ', $request->type));
+            $this->sendSmsOtp($request->phone_number, $otp, $messageType);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP sent successfully',
+                'data' => [
+                    'phone_number' => $request->phone_number,
+                    'type' => $request->type,
+                    'otp' => config('app.debug') ? $otp : null // Only show OTP in debug mode
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while sending OTP'
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify OTP
+     */
+    public function verifyOtp(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone_number' => 'required|string|max:15',
+                'otp' => 'required|string|size:6',
+                'type' => 'required|string|in:registration,password_reset,phone_change',
+                'user_id' => 'sometimes|integer|exists:users,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Verify OTP
+            $cacheKey = 'otp_' . $request->phone_number . '_' . $request->type;
+            $storedOtp = \Cache::get($cacheKey);
+            
+            if (!$storedOtp || $storedOtp !== $request->otp) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid or expired OTP'
+                ], 400);
+            }
+
+            // Clear OTP from cache
+            \Cache::forget($cacheKey);
+
+            // For registration type, create user session
+            if ($request->type === 'registration') {
+                $user = User::where('phone', $request->phone_number)->first();
+                if ($user) {
+                    $token = $user->createToken('auth_token', ['*']);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'OTP verified successfully',
+                        'data' => [
+                            'user' => $user,
+                            'token' => $token->plainTextToken
+                        ]
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP verified successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify OTP',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while verifying OTP'
+            ], 500);
+        }
+    }
+
+    /**
+     * Change user password
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'current_password' => 'required|string',
+                'new_password' => 'required|string|min:6',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = $request->user();
+
+            // Verify current password
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Current password is incorrect'
+                ], 400);
+            }
+
+            // Update password
+            $user->update([
+                'password' => Hash::make($request->new_password)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password changed successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to change password',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while changing password'
+            ], 500);
+        }
+    }
+
+    /**
+     * Send SMS OTP using Next SMS service
+     */
+    private function sendSmsOtp(string $phoneNumber, string $otp, string $type): bool
+    {
+        try {
+            $smsApiUrl = env('NEXT_SMS_API_URL', 'https://messaging-service.co.tz/api/sms/v1/text/single');
+            $authorization = env('NEXT_SMS_AUTHORIZATION', 'Basic bXNpbHUyMTpwYXNzdzByZEAyMDI1');
+            $senderId = env('NEXT_SMS_SENDER_ID', 'HARUSI');
+
+            // Format phone number (ensure it starts with +255)
+            $formattedPhone = $this->formatPhoneNumber($phoneNumber);
+
+            // Create SMS message
+            $message = "Your {$type} OTP is: {$otp}. Valid for 10 minutes. Do not share this code with anyone. - Fundi App";
+
+            // Prepare SMS payload
+            $payload = [
+                'from' => $senderId,
+                'to' => $formattedPhone,
+                'text' => $message
+            ];
+
+            // Send SMS via cURL
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $smsApiUrl);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: ' . $authorization
+            ]);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($error) {
+                \Log::error('SMS cURL Error: ' . $error);
+                return false;
+            }
+
+            if ($httpCode !== 200) {
+                \Log::error('SMS API Error: HTTP ' . $httpCode . ' - ' . $response);
+                return false;
+            }
+
+            $responseData = json_decode($response, true);
+            if (isset($responseData['status']) && $responseData['status'] === 'success') {
+                \Log::info('SMS sent successfully to ' . $formattedPhone);
+                return true;
+            } else {
+                \Log::error('SMS API Error: ' . $response);
+                return false;
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('SMS sending failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Format phone number for SMS service
+     */
+    private function formatPhoneNumber(string $phoneNumber): string
+    {
+        // Remove any non-digit characters
+        $phone = preg_replace('/[^0-9]/', '', $phoneNumber);
+        
+        // If it starts with 0, replace with +255
+        if (strpos($phone, '0') === 0) {
+            $phone = '+255' . substr($phone, 1);
+        }
+        // If it doesn't start with +, add +255
+        elseif (strpos($phone, '255') !== 0) {
+            $phone = '+255' . $phone;
+        }
+        // If it starts with 255, add +
+        elseif (strpos($phone, '255') === 0) {
+            $phone = '+' . $phone;
+        }
+
+        return $phone;
+    }
 
     /**
      * Get token information

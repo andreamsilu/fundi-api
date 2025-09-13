@@ -35,6 +35,72 @@ class UserController extends Controller
     }
 
     /**
+     * Update user profile
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            $validator = Validator::make($request->all(), [
+                'first_name' => 'sometimes|string|max:50',
+                'last_name' => 'sometimes|string|max:50',
+                'email' => 'sometimes|email|max:100|unique:users,email,' . $user->id,
+                'phone_number' => 'sometimes|string|max:15|unique:users,phone,' . $user->id,
+                'profile_image_url' => 'sometimes|string|max:500',
+                'bio' => 'sometimes|string|max:500',
+                'location' => 'sometimes|string|max:100',
+                'nida_number' => 'sometimes|string|max:20',
+                'veta_certificate' => 'sometimes|string|max:255',
+                'skills' => 'sometimes|array',
+                'skills.*' => 'string|max:50',
+                'languages' => 'sometimes|array',
+                'languages.*' => 'string|max:50',
+                'preferences' => 'sometimes|array',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Update user profile
+            $user->update($request->only([
+                'first_name',
+                'last_name', 
+                'email',
+                'phone_number',
+                'profile_image_url',
+                'bio',
+                'location',
+                'nida_number',
+                'veta_certificate',
+                'skills',
+                'languages',
+                'preferences'
+            ]));
+
+            $user->load('fundiProfile');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully',
+                'data' => $user
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update profile',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while updating profile'
+            ], 500);
+        }
+    }
+
+    /**
      * Update fundi profile
      */
     public function updateFundiProfile(Request $request): JsonResponse

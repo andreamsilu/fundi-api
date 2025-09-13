@@ -8,7 +8,6 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\PortfolioController;
-use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\FundiApplicationController;
@@ -17,6 +16,8 @@ use App\Http\Controllers\FeedController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AdminRoleController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\AdminPaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,15 +33,21 @@ use App\Http\Controllers\AdminRoleController;
 // Public routes (no authentication required)
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
+Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
 
 // Protected routes (authentication required)
 Route::middleware('auth:sanctum')->group(function () {
     // Authentication routes
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
     // User routes
     Route::get('/users/me', [UserController::class, 'me']);
+    Route::patch('/users/me/profile', [UserController::class, 'updateProfile']);
     Route::patch('/users/me/fundi-profile', [UserController::class, 'updateFundiProfile']);
     Route::get('/users/fundi/{fundiId}', [UserController::class, 'getFundiProfile']);
 
@@ -93,8 +100,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/work-approval/submissions/{id}/reject', [WorkApprovalController::class, 'rejectWorkSubmission'])->middleware('permission:reject_work');
 
     // Payment routes
-    Route::get('/payments', [PaymentController::class, 'index']);
-    Route::post('/payments', [PaymentController::class, 'store']);
+    Route::get('/payments/current-plan', [PaymentController::class, 'getCurrentPlan']);
+    Route::get('/payments/plans', [PaymentController::class, 'getAvailablePlans']);
+    Route::post('/payments/subscribe', [PaymentController::class, 'subscribe']);
+    Route::post('/payments/cancel-subscription', [PaymentController::class, 'cancelSubscription']);
+    Route::get('/payments/history', [PaymentController::class, 'getPaymentHistory']);
+    Route::post('/payments/check-permission', [PaymentController::class, 'checkActionPermission']);
+    Route::post('/payments/pay-per-use', [PaymentController::class, 'processPayPerUse']);
 
     // Notification routes
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -189,6 +201,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/notifications', [AdminController::class, 'sendNotification']);
         Route::patch('/admin/notifications/{id}', [AdminController::class, 'updateNotification']);
         Route::delete('/admin/notifications/{id}', [AdminController::class, 'deleteNotification']);
+
+        // Payment management
+        Route::get('/admin/payment-plans', [AdminPaymentController::class, 'getPaymentPlans']);
+        Route::post('/admin/payment-plans', [AdminPaymentController::class, 'createPaymentPlan']);
+        Route::put('/admin/payment-plans/{id}', [AdminPaymentController::class, 'updatePaymentPlan']);
+        Route::delete('/admin/payment-plans/{id}', [AdminPaymentController::class, 'deletePaymentPlan']);
+        Route::patch('/admin/payment-plans/{id}/toggle-status', [AdminPaymentController::class, 'togglePlanStatus']);
+        Route::get('/admin/payment-statistics', [AdminPaymentController::class, 'getPaymentStatistics']);
+        Route::get('/admin/user-subscriptions', [AdminPaymentController::class, 'getUserSubscriptions']);
+        Route::get('/admin/payment-transactions', [AdminPaymentController::class, 'getPaymentTransactions']);
 
         // System monitoring
         Route::get('/admin/monitor/active-users', [AdminController::class, 'getActiveUsers']);
