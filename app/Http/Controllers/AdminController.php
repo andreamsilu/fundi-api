@@ -925,6 +925,40 @@ class AdminController extends Controller
     }
 
     /**
+     * Get all categories
+     */
+    public function getCategories(Request $request): JsonResponse
+    {
+        try {
+            $query = \App\Models\Category::orderBy('name', 'asc');
+
+            // Apply search filter
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $categories = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Categories retrieved successfully',
+                'data' => $categories
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve categories',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving categories'
+            ], 500);
+        }
+    }
+
+    /**
      * Create category
      */
     public function createCategory(Request $request): JsonResponse
@@ -1181,6 +1215,512 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => 'Failed to force logout user',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while forcing logout'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all jobs (Admin view)
+     */
+    public function getJobs(Request $request): JsonResponse
+    {
+        try {
+            $query = Job::with(['user', 'category', 'applications'])
+                ->orderBy('created_at', 'desc');
+
+            // Apply filters
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('category_id')) {
+                $query->where('category_id', $request->category_id);
+            }
+
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $jobs = $query->paginate(15);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jobs retrieved successfully',
+                'data' => $jobs
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve jobs',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving jobs'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all job applications (Admin view)
+     */
+    public function getJobApplications(Request $request): JsonResponse
+    {
+        try {
+            $query = JobApplication::with(['job', 'user', 'fundiProfile'])
+                ->orderBy('created_at', 'desc');
+
+            // Apply filters
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('job_id')) {
+                $query->where('job_id', $request->job_id);
+            }
+
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            $applications = $query->paginate(15);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job applications retrieved successfully',
+                'data' => $applications
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve job applications',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving job applications'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update job application (Admin view)
+     */
+    public function updateJobApplication(Request $request, $id): JsonResponse
+    {
+        try {
+            $application = JobApplication::find($id);
+
+            if (!$application) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Job application not found'
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'status' => 'required|in:pending,approved,rejected,completed',
+                'admin_notes' => 'sometimes|string|max:1000',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $application->update([
+                'status' => $request->status,
+                'admin_notes' => $request->admin_notes,
+                'admin_updated_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job application updated successfully',
+                'data' => $application->load(['job', 'user', 'fundiProfile'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update job application',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while updating job application'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all portfolios (Admin view)
+     */
+    public function getPortfolios(Request $request): JsonResponse
+    {
+        try {
+            $query = \App\Models\Portfolio::with(['user', 'category'])
+                ->orderBy('created_at', 'desc');
+
+            // Apply filters
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->has('category_id')) {
+                $query->where('category_id', $request->category_id);
+            }
+
+            $portfolios = $query->paginate(15);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Portfolios retrieved successfully',
+                'data' => $portfolios
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve portfolios',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving portfolios'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all payments (Admin view)
+     */
+    public function getPayments(Request $request): JsonResponse
+    {
+        try {
+            $query = Payment::with(['user', 'paymentPlan'])
+                ->orderBy('created_at', 'desc');
+
+            // Apply filters
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->has('payment_method')) {
+                $query->where('payment_method', $request->payment_method);
+            }
+
+            if ($request->has('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->has('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            $payments = $query->paginate(15);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payments retrieved successfully',
+                'data' => $payments
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve payments',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving payments'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get active users count
+     */
+    public function getActiveUsers(Request $request): JsonResponse
+    {
+        try {
+            $totalUsers = User::count();
+            $activeUsers = User::where('status', 'active')->count();
+            $fundis = User::where('roles', 'like', '%fundi%')->count();
+            $customers = User::where('roles', 'like', '%customer%')->count();
+
+            // Users active in last 24 hours (using updated_at as proxy)
+            $recentlyActive = User::where('updated_at', '>=', now()->subDay())->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Active users data retrieved successfully',
+                'data' => [
+                    'total_users' => $totalUsers,
+                    'active_users' => $activeUsers,
+                    'total_fundis' => $fundis,
+                    'total_customers' => $customers,
+                    'recently_active' => $recentlyActive,
+                    'inactive_users' => $totalUsers - $activeUsers
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve active users data',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving active users data'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get jobs summary
+     */
+    public function getJobsSummary(Request $request): JsonResponse
+    {
+        try {
+            $totalJobs = Job::count();
+            $activeJobs = Job::where('status', 'active')->count();
+            $completedJobs = Job::where('status', 'completed')->count();
+            $pendingJobs = Job::where('status', 'pending')->count();
+            $cancelledJobs = Job::where('status', 'cancelled')->count();
+
+            $totalApplications = JobApplication::count();
+            $pendingApplications = JobApplication::where('status', 'pending')->count();
+            $approvedApplications = JobApplication::where('status', 'approved')->count();
+            $rejectedApplications = JobApplication::where('status', 'rejected')->count();
+
+            // Jobs created in last 30 days
+            $recentJobs = Job::where('created_at', '>=', now()->subDays(30))->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jobs summary retrieved successfully',
+                'data' => [
+                    'total_jobs' => $totalJobs,
+                    'active_jobs' => $activeJobs,
+                    'completed_jobs' => $completedJobs,
+                    'pending_jobs' => $pendingJobs,
+                    'cancelled_jobs' => $cancelledJobs,
+                    'total_applications' => $totalApplications,
+                    'pending_applications' => $pendingApplications,
+                    'approved_applications' => $approvedApplications,
+                    'rejected_applications' => $rejectedApplications,
+                    'recent_jobs' => $recentJobs
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve jobs summary',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving jobs summary'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get payments summary
+     */
+    public function getPaymentsSummary(Request $request): JsonResponse
+    {
+        try {
+            $totalPayments = Payment::count();
+            $successfulPayments = Payment::where('status', 'completed')->count();
+            $pendingPayments = Payment::where('status', 'pending')->count();
+            $failedPayments = Payment::where('status', 'failed')->count();
+
+            $totalRevenue = Payment::where('status', 'completed')->sum('amount');
+            $monthlyRevenue = Payment::where('status', 'completed')
+                ->where('created_at', '>=', now()->startOfMonth())
+                ->sum('amount');
+
+            $activeSubscriptions = \App\Models\UserSubscription::where('status', 'active')->count();
+            $expiredSubscriptions = \App\Models\UserSubscription::where('status', 'expired')->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payments summary retrieved successfully',
+                'data' => [
+                    'total_payments' => $totalPayments,
+                    'successful_payments' => $successfulPayments,
+                    'pending_payments' => $pendingPayments,
+                    'failed_payments' => $failedPayments,
+                    'total_revenue' => $totalRevenue,
+                    'monthly_revenue' => $monthlyRevenue,
+                    'active_subscriptions' => $activeSubscriptions,
+                    'expired_subscriptions' => $expiredSubscriptions
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve payments summary',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving payments summary'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get system health status
+     */
+    public function getSystemHealth(Request $request): JsonResponse
+    {
+        try {
+            $health = [
+                'database' => 'healthy',
+                'cache' => 'healthy',
+                'storage' => 'healthy',
+                'api' => 'healthy',
+                'overall' => 'healthy'
+            ];
+
+            // Check database connection
+            try {
+                \DB::connection()->getPdo();
+            } catch (\Exception $e) {
+                $health['database'] = 'unhealthy';
+                $health['overall'] = 'unhealthy';
+            }
+
+            // Check cache
+            try {
+                \Cache::put('health_check', 'ok', 1);
+                if (\Cache::get('health_check') !== 'ok') {
+                    $health['cache'] = 'unhealthy';
+                    $health['overall'] = 'unhealthy';
+                }
+            } catch (\Exception $e) {
+                $health['cache'] = 'unhealthy';
+                $health['overall'] = 'unhealthy';
+            }
+
+            // Check storage
+            try {
+                \Storage::disk('local')->put('health_check.txt', 'ok');
+                if (\Storage::disk('local')->get('health_check.txt') !== 'ok') {
+                    $health['storage'] = 'unhealthy';
+                    $health['overall'] = 'unhealthy';
+                }
+                \Storage::disk('local')->delete('health_check.txt');
+            } catch (\Exception $e) {
+                $health['storage'] = 'unhealthy';
+                $health['overall'] = 'unhealthy';
+            }
+
+            // Get pending approvals count
+            $pendingApprovals = \App\Models\Portfolio::where('status', 'pending')->count() +
+                              JobApplication::where('status', 'pending')->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'System health retrieved successfully',
+                'data' => [
+                    'health' => $health,
+                    'pending_approvals' => $pendingApprovals,
+                    'server_time' => now()->toISOString(),
+                    'uptime' => 'N/A' // This would require system-level monitoring
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve system health',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving system health'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get API logs
+     */
+    public function getApiLogs(Request $request): JsonResponse
+    {
+        try {
+            $query = \App\Models\ApiLog::orderBy('created_at', 'desc');
+
+            // Apply filters
+            if ($request->has('method')) {
+                $query->where('method', $request->method);
+            }
+
+            if ($request->has('status_code')) {
+                $query->where('status_code', $request->status_code);
+            }
+
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->has('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->has('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            $logs = $query->paginate(50);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'API logs retrieved successfully',
+                'data' => $logs
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve API logs',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving API logs'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Laravel logs
+     */
+    public function getLaravelLogs(Request $request): JsonResponse
+    {
+        try {
+            $logFile = storage_path('logs/laravel.log');
+            
+            if (!file_exists($logFile)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No logs found',
+                    'data' => []
+                ]);
+            }
+
+            $logs = [];
+            $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            
+            // Get last 100 lines
+            $recentLines = array_slice($lines, -100);
+            
+            foreach ($recentLines as $line) {
+                if (preg_match('/^\[(.*?)\].*?(\w+):\s*(.*)$/', $line, $matches)) {
+                    $logs[] = [
+                        'timestamp' => $matches[1],
+                        'level' => $matches[2],
+                        'message' => $matches[3]
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Laravel logs retrieved successfully',
+                'data' => array_reverse($logs) // Most recent first
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve Laravel logs',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving Laravel logs'
             ], 500);
         }
     }

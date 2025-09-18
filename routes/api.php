@@ -18,6 +18,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AdminRoleController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AdminPaymentController;
+use App\Http\Controllers\ErrorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +38,9 @@ Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+
+// Public routes (no authentication required)
+Route::get('/categories', [CategoryController::class, 'index']);
 
 // Protected routes (authentication required)
 Route::middleware('custom.auth')->group(function () {
@@ -61,8 +65,6 @@ Route::middleware('custom.auth')->group(function () {
     Route::get('/fundi-applications/status', [FundiApplicationController::class, 'getStatus']);
     Route::delete('/fundi-applications/{id}', [FundiApplicationController::class, 'destroy']);
 
-    // Category routes
-    Route::get('/categories', [CategoryController::class, 'index']);
 
     // Job routes
     Route::get('/jobs', [JobController::class, 'index'])->middleware('permission:view_jobs');
@@ -188,6 +190,7 @@ Route::middleware('custom.auth')->group(function () {
         Route::delete('/admin/portfolio/{id}', [AdminController::class, 'deletePortfolio']);
 
         // Category management
+        Route::get('/admin/categories', [AdminController::class, 'getCategories']);
         Route::post('/admin/categories', [AdminController::class, 'createCategory']);
         Route::patch('/admin/categories/{id}', [AdminController::class, 'updateCategory']);
         Route::delete('/admin/categories/{id}', [AdminController::class, 'deleteCategory']);
@@ -222,4 +225,16 @@ Route::middleware('custom.auth')->group(function () {
         Route::delete('/admin/sessions/{id}', [AdminController::class, 'forceLogout']);
         Route::get('/admin/logs', [AdminController::class, 'getLaravelLogs']);
     });
+});
+
+// Fallback routes for error handling
+Route::fallback(function () {
+    return response()->json([
+        'success' => false,
+        'message' => 'API endpoint not found',
+        'error' => 'The requested API endpoint does not exist',
+        'path' => request()->path(),
+        'method' => request()->method(),
+        'timestamp' => now()->toISOString()
+    ], 404);
 });

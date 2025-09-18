@@ -61,6 +61,28 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the roles attribute with proper JSON decoding
+     */
+    public function getRolesAttribute($value)
+    {
+        if (is_string($value)) {
+            // Handle both regular JSON and escaped JSON strings
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+            // If JSON decode failed, try to handle escaped quotes
+            $cleaned = stripslashes($value);
+            $decoded = json_decode($cleaned, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+            return [];
+        }
+        return is_array($value) ? $value : [];
+    }
+
+    /**
      * Get the fundi profile associated with the user.
      */
     public function fundiProfile()
@@ -183,23 +205,25 @@ class User extends Authenticatable
         return count($this->roles) > 1;
     }
 
-    /**
-     * Get all roles for the user
-     */
-    public function getRolesAttribute()
-    {
-        if (isset($this->attributes['roles']) && $this->attributes['roles']) {
-            return json_decode($this->attributes['roles'], true) ?: ['customer'];
-        }
-        return ['customer'];
-    }
 
     /**
      * Check if user has a specific role
      */
     public function hasRole($role)
     {
-        return in_array($role, $this->roles);
+        $roles = $this->getRoles();
+        return in_array($role, $roles);
+    }
+
+    /**
+     * Get user roles as array
+     */
+    public function getRoles()
+    {
+        if (is_string($this->roles)) {
+            return json_decode($this->roles, true) ?? [];
+        }
+        return is_array($this->roles) ? $this->roles : [];
     }
 
     /**
