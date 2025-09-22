@@ -52,7 +52,7 @@ class JobApplicationsSeeder extends Seeder
                     'preparation' => 500,
                 ],
                 'estimated_time' => 5,
-                'status' => 'in_progress',
+                'status' => 'accepted',
             ],
             [
                 'requirements' => 'Landscape architect with 10+ years experience. Specialized in sustainable designs.',
@@ -103,7 +103,7 @@ class JobApplicationsSeeder extends Seeder
                     'hardware' => 500,
                 ],
                 'estimated_time' => 7,
-                'status' => 'completed',
+                'status' => 'accepted',
             ],
             [
                 'requirements' => 'Master plumber with 24/7 availability. Licensed and insured.',
