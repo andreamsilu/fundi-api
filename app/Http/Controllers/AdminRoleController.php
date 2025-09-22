@@ -565,10 +565,21 @@ class AdminRoleController extends Controller
     public function getAllRoles(Request $request): JsonResponse
     {
         try {
-            $roles = Role::with('permissions')
+            $query = Role::with('permissions')
                 ->orderBy('sort_order')
-                ->orderBy('display_name')
-                ->get();
+                ->orderBy('display_name');
+
+            // Apply search filter
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('display_name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $roles = $query->paginate(10);
 
             return response()->json([
                 'success' => true,

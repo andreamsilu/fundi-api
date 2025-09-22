@@ -176,6 +176,7 @@ Route::middleware('custom.auth')->group(function () {
 
         // Job management
         Route::get('/admin/jobs', [AdminController::class, 'getJobs']);
+        Route::post('/admin/jobs', [AdminController::class, 'createJob']);
         Route::get('/admin/jobs/{id}', [AdminController::class, 'getJob']);
         Route::patch('/admin/jobs/{id}', [AdminController::class, 'updateJob']);
         Route::delete('/admin/jobs/{id}', [AdminController::class, 'deleteJob']);
@@ -221,6 +222,8 @@ Route::middleware('custom.auth')->group(function () {
         Route::get('/admin/monitor/payments-summary', [AdminController::class, 'getPaymentsSummary']);
         Route::get('/admin/monitor/system-health', [AdminController::class, 'getSystemHealth']);
         Route::get('/admin/monitor/api-logs', [AdminController::class, 'getApiLogs']);
+        Route::get('/admin/monitor/api-logs/export', [AdminController::class, 'exportApiLogs']);
+        Route::get('/admin/audit-logs', [AdminController::class, 'getAuditLogs']);
         Route::get('/admin/sessions', [AdminController::class, 'getSessions']);
         Route::delete('/admin/sessions/{id}', [AdminController::class, 'forceLogout']);
         Route::get('/admin/logs', [AdminController::class, 'getLaravelLogs']);

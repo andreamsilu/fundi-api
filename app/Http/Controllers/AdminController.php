@@ -22,7 +22,7 @@ class AdminController extends Controller
         try {
             $users = User::with('fundiProfile')
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -292,7 +292,7 @@ class AdminController extends Controller
             $fundiProfiles = User::with('fundiProfile')
                 ->whereJsonContains('roles', 'fundi')
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -366,7 +366,7 @@ class AdminController extends Controller
         try {
             $jobs = \App\Models\Job::with(['customer', 'category', 'applications'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -508,7 +508,7 @@ class AdminController extends Controller
         try {
             $applications = \App\Models\JobApplication::with(['job', 'fundi.fundiProfile'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -696,7 +696,7 @@ class AdminController extends Controller
         try {
             $payments = \App\Models\Payment::with('user')
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -941,7 +941,7 @@ class AdminController extends Controller
                 });
             }
 
-            $categories = $query->get();
+            $categories = $query->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -1165,7 +1165,7 @@ class AdminController extends Controller
                 ->whereNull('logout_at')
                 ->where('expired_at', '>', now())
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -1220,12 +1220,55 @@ class AdminController extends Controller
     }
 
     /**
+     * Create a new job
+     */
+    public function createJob(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'category_id' => 'required|exists:categories,id',
+                'customer_id' => 'required|exists:users,id',
+                'budget' => 'required|numeric|min:0',
+                'deadline' => 'nullable|date|after:today',
+                'location_lat' => 'nullable|numeric',
+                'location_lng' => 'nullable|numeric',
+                'status' => 'nullable|in:open,in_progress,completed,cancelled,urgent',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $job = Job::create($request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job created successfully',
+                'data' => $job->load(['customer', 'category'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create job',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while creating job'
+            ], 500);
+        }
+    }
+
+    /**
      * Get all jobs (Admin view)
      */
     public function getJobs(Request $request): JsonResponse
     {
         try {
-            $query = Job::with(['user', 'category', 'applications'])
+            $query = Job::with(['customer', 'category', 'applications'])
                 ->orderBy('created_at', 'desc');
 
             // Apply filters
@@ -1263,12 +1306,44 @@ class AdminController extends Controller
     }
 
     /**
+     * Get a specific job
+     */
+    public function getJobById(Request $request, $id): JsonResponse
+    {
+        try {
+            $job = Job::with(['customer', 'category', 'applications'])->find($id);
+
+            if (!$job) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Job not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job retrieved successfully',
+                'data' => $job
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve job',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving job'
+            ], 500);
+        }
+    }
+
+
+
+    /**
      * Get all job applications (Admin view)
      */
     public function getJobApplications(Request $request): JsonResponse
     {
         try {
-            $query = JobApplication::with(['job', 'user', 'fundiProfile'])
+            $query = JobApplication::with(['job', 'fundi'])
                 ->orderBy('created_at', 'desc');
 
             // Apply filters
@@ -1356,7 +1431,7 @@ class AdminController extends Controller
     public function getPortfolios(Request $request): JsonResponse
     {
         try {
-            $query = \App\Models\Portfolio::with(['user', 'category'])
+            $query = \App\Models\Portfolio::with(['fundi'])
                 ->orderBy('created_at', 'desc');
 
             // Apply filters
@@ -1364,12 +1439,8 @@ class AdminController extends Controller
                 $query->where('status', $request->status);
             }
 
-            if ($request->has('user_id')) {
-                $query->where('user_id', $request->user_id);
-            }
-
-            if ($request->has('category_id')) {
-                $query->where('category_id', $request->category_id);
+            if ($request->has('fundi_id')) {
+                $query->where('fundi_id', $request->fundi_id);
             }
 
             $portfolios = $query->paginate(15);
@@ -1395,7 +1466,7 @@ class AdminController extends Controller
     public function getPayments(Request $request): JsonResponse
     {
         try {
-            $query = Payment::with(['user', 'paymentPlan'])
+            $query = Payment::with(['user'])
                 ->orderBy('created_at', 'desc');
 
             // Apply filters
@@ -1407,8 +1478,8 @@ class AdminController extends Controller
                 $query->where('user_id', $request->user_id);
             }
 
-            if ($request->has('payment_method')) {
-                $query->where('payment_method', $request->payment_method);
+            if ($request->has('payment_type')) {
+                $query->where('payment_type', $request->payment_type);
             }
 
             if ($request->has('date_from')) {
@@ -1661,7 +1732,7 @@ class AdminController extends Controller
                 $query->whereDate('created_at', '<=', $request->date_to);
             }
 
-            $logs = $query->paginate(50);
+            $logs = $query->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -1674,6 +1745,135 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => 'Failed to retrieve API logs',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving API logs'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get audit logs
+     */
+    public function getAuditLogs(Request $request): JsonResponse
+    {
+        try {
+            $query = \App\Models\AuditLog::with('user')->orderBy('created_at', 'desc');
+
+            // Apply filters
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('action', 'like', "%{$search}%")
+                      ->orWhere('resource_type', 'like', "%{$search}%")
+                      ->orWhere('resource_id', 'like', "%{$search}%")
+                      ->orWhere('ip_address', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->has('action') && $request->action !== 'all') {
+                $query->where('action', $request->action);
+            }
+
+            if ($request->has('status') && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->has('resource_type')) {
+                $query->where('resource_type', $request->resource_type);
+            }
+
+            if ($request->has('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->has('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            $logs = $query->paginate(10);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Audit logs retrieved successfully',
+                'data' => $logs
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve audit logs',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving audit logs'
+            ], 500);
+        }
+    }
+
+    /**
+     * Export API logs
+     */
+    public function exportApiLogs(Request $request): JsonResponse
+    {
+        try {
+            $query = \App\Models\ApiLog::orderBy('created_at', 'desc');
+
+            // Apply filters
+            if ($request->has('method')) {
+                $query->where('method', $request->method);
+            }
+
+            if ($request->has('status_code')) {
+                $query->where('status_code', $request->status_code);
+            }
+
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->has('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->has('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            $logs = $query->get();
+
+            // Generate CSV content
+            $csvData = "ID,Method,URL,Status Code,IP Address,Response Time (ms),Created At\n";
+            
+            foreach ($logs as $log) {
+                $csvData .= sprintf(
+                    "%d,%s,%s,%d,%s,%s,%s\n",
+                    $log->id,
+                    $log->method,
+                    $log->url,
+                    $log->status_code,
+                    $log->ip_address ?? '',
+                    $log->response_time ?? '',
+                    $log->created_at
+                );
+            }
+
+            // Generate filename with timestamp
+            $filename = 'api_logs_' . now()->format('Y-m-d_H-i-s') . '.csv';
+
+            return response()->json([
+                'success' => true,
+                'message' => 'API logs exported successfully',
+                'data' => [
+                    'filename' => $filename,
+                    'content' => base64_encode($csvData),
+                    'total_records' => $logs->count()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to export API logs',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while exporting API logs'
             ], 500);
         }
     }
