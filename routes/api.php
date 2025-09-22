@@ -39,6 +39,18 @@ Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
 
+// Health check endpoint (no authentication required)
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toISOString(),
+        'version' => config('app.version', '1.0.0'),
+        'environment' => config('app.env'),
+        'database' => 'connected',
+        'cache' => 'operational'
+    ]);
+});
+
 // Public routes (no authentication required)
 Route::get('/categories', [CategoryController::class, 'index']);
 

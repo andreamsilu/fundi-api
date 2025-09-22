@@ -1,0 +1,165 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+env:
+  APP_ENV: production
+  PHP_VERSION: 8.2
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        extensions: mbstring, dom, fileinfo, mysql, pdo_mysql, bcmath, gd, zip, intl, redis, soap, xsl, gmp, exif, pcntl, sockets
+
+    - name: Get Composer Cache Directory
+      id: composer-cache
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: ${{ runner.os }}-composer-
+
+    - name: Install Composer dependencies
+      run: composer install --no-dev --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Create deployment package
+      run: |
+        tar -czf fundi-api-$(date +%Y%m%d-%H%M%S).tar.gz \
+          --exclude='.git' \
+          --exclude='tests' \
+          --exclude='.github' \
+          --exclude='storage/logs/*' \
+          --exclude='storage/framework/cache/*' \
+          --exclude='storage/framework/sessions/*' \
+          --exclude='storage/framework/views/*' \
+          --exclude='.env' \
+          --exclude='.env.*' \
+          --exclude='*.log' \
+          --exclude='vendor' \
+          .
+
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.PORT || 22 }}
+        script: |
+          # Create backup
+          if [ -d "/var/www/fundi-api" ]; then
+            sudo cp -r /var/www/fundi-api /var/www/fundi-api-backup-$(date +%Y%m%d-%H%M%S)
+          fi
+          
+          # Create directory if it doesn't exist
+          sudo mkdir -p /var/www/fundi-api
+          sudo chown -R $USER:$USER /var/www/fundi-api
+
+    - name: Upload files to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.PORT || 22 }}
+        source: "fundi-api-*.tar.gz"
+        target: "/var/www/fundi-api/"
+
+    - name: Extract and setup on server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.PORT || 22 }}
+        script: |
+          cd /var/www/fundi-api
+          
+          # Extract new version
+          tar -xzf fundi-api-*.tar.gz
+          rm fundi-api-*.tar.gz
+          
+          # Set proper permissions
+          sudo chown -R www-data:www-data /var/www/fundi-api
+          sudo chmod -R 755 /var/www/fundi-api
+          sudo chmod -R 775 /var/www/fundi-api/storage
+          sudo chmod -R 775 /var/www/fundi-api/bootstrap/cache
+          
+          # Install/update Composer dependencies
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+          
+          # Clear and cache configuration
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan event:cache
+          
+          # Run database migrations
+          php artisan migrate --force
+          
+          # Restart services
+          sudo systemctl reload php8.2-fpm
+          sudo systemctl reload nginx
+          
+          # Clear application cache
+          php artisan cache:clear
+          php artisan queue:restart
+
+    - name: Health check
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.PORT || 22 }}
+        script: |
+          # Wait for services to be ready
+          sleep 10
+          
+          # Check if the application is responding
+          if curl -f http://localhost/api/health > /dev/null 2>&1; then
+            echo "✅ Deployment successful - API is responding"
+          else
+            echo "❌ Deployment failed - API is not responding"
+            exit 1
+          fi
+
+    - name: Notify deployment status
+      if: always()
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.PORT || 22 }}
+        script: |
+          echo "Deployment completed at $(date)"
+          echo "Environment: ${{ github.event.inputs.environment || 'production' }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"

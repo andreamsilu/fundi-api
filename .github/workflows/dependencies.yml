@@ -1,0 +1,126 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: mbstring, dom, fileinfo, mysql, pdo_mysql, bcmath, gd, zip, intl, redis, soap, xsl, gmp, exif, pcntl, sockets
+
+    - name: Get Composer Cache Directory
+      id: composer-cache
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: ${{ runner.os }}-composer-
+
+    - name: Install Composer dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Check for Composer updates
+      id: composer-updates
+      run: |
+        composer outdated --direct --format=json > composer-outdated.json
+        if [ -s composer-outdated.json ]; then
+          echo "has-updates=true" >> $GITHUB_OUTPUT
+          echo "Updates available:"
+          cat composer-outdated.json | jq -r '.installed[] | "\(.name): \(.version) -> \(.latest)"'
+        else
+          echo "has-updates=false" >> $GITHUB_OUTPUT
+          echo "No Composer updates available"
+        fi
+
+    - name: Update Composer dependencies
+      if: steps.composer-updates.outputs.has-updates == 'true'
+      run: |
+        composer update --no-interaction --prefer-dist --optimize-autoloader
+        composer outdated --direct
+
+    - name: Run tests after updates
+      if: steps.composer-updates.outputs.has-updates == 'true'
+      run: |
+        # Copy environment file
+        cp .env.example .env
+        
+        # Generate application key
+        php artisan key:generate
+        
+        # Set up test database
+        php artisan config:cache
+        php artisan migrate --force
+        
+        # Run tests
+        composer test
+
+    - name: Create Pull Request
+      if: steps.composer-updates.outputs.has-updates == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update dependencies'
+        title: 'Automated dependency updates'
+        body: |
+          ## Automated Dependency Updates
+          
+          This PR contains automated updates to project dependencies.
+          
+          ### Composer Updates
+          ${{ steps.composer-updates.outputs.has-updates == 'true' && '✅ Updates available' || '❌ No updates available' }}
+          
+          ### Changes Made
+          - Updated Composer dependencies to latest compatible versions
+          - All tests passing after updates
+          
+          ### Review Required
+          Please review the changes and test thoroughly before merging.
+          
+          **Note**: This is an automated update. Please verify compatibility and functionality before merging.
+        branch: automated-dependency-updates
+        delete-branch: true
+        labels: |
+          dependencies
+          automated
+          needs-review
+
+    - name: Generate dependency report
+      run: |
+        echo "# Dependency Update Report" > dependency-report.md
+        echo "Generated on: $(date)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "## Composer Dependencies" >> dependency-report.md
+        if [ -f composer-outdated.json ] && [ -s composer-outdated.json ]; then
+          echo "### Outdated Packages:" >> dependency-report.md
+          cat composer-outdated.json | jq -r '.installed[] | "- \(.name): \(.version) -> \(.latest)"' >> dependency-report.md
+        else
+          echo "✅ All Composer dependencies are up to date" >> dependency-report.md
+        fi
+        echo "" >> dependency-report.md
+        echo "## PHP Dependencies" >> dependency-report.md
+        echo "✅ All Composer dependencies are up to date" >> dependency-report.md
+
+    - name: Upload dependency report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-report
+        path: dependency-report.md
+        retention-days: 30

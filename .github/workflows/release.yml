@@ -1,0 +1,94 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: mbstring, dom, fileinfo, mysql, pdo_mysql, bcmath, gd, zip, intl, redis, soap, xsl, gmp, exif, pcntl, sockets
+
+    - name: Install dependencies
+      run: composer install --no-dev --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "## Changes since $PREVIOUS_TAG" > CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> CHANGELOG.md
+        else
+          echo "## Initial Release" > CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" >> CHANGELOG.md
+        fi
+        
+        echo "" >> CHANGELOG.md
+        echo "## Installation" >> CHANGELOG.md
+        echo "1. Clone the repository" >> CHANGELOG.md
+        echo "2. Run \`composer install\`" >> CHANGELOG.md
+        echo "3. Copy \`.env.example\` to \`.env\`" >> CHANGELOG.md
+        echo "4. Run \`php artisan key:generate\`" >> CHANGELOG.md
+        echo "5. Configure your database settings" >> CHANGELOG.md
+        echo "6. Run \`php artisan migrate\`" >> CHANGELOG.md
+        echo "7. Run \`php artisan config:cache\` for production" >> CHANGELOG.md
+
+    - name: Create release archive
+      run: |
+        # Create a clean release archive
+        tar -czf fundi-api-${{ github.event.inputs.tag || github.ref_name }}.tar.gz \
+          --exclude='.git' \
+          --exclude='tests' \
+          --exclude='.github' \
+          --exclude='storage/logs/*' \
+          --exclude='storage/framework/cache/*' \
+          --exclude='storage/framework/sessions/*' \
+          --exclude='storage/framework/views/*' \
+          --exclude='.env*' \
+          --exclude='*.log' \
+          --exclude='vendor' \
+          .
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+        release_name: Fundi API ${{ github.event.inputs.tag || github.ref_name }}
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, 'beta') || contains(github.event.inputs.tag || github.ref_name, 'alpha') || contains(github.event.inputs.tag || github.ref_name, 'rc') }}
+        files: fundi-api-${{ github.event.inputs.tag || github.ref_name }}.tar.gz
+
+    - name: Upload release artifacts
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./fundi-api-${{ github.event.inputs.tag || github.ref_name }}.tar.gz
+        asset_name: fundi-api-${{ github.event.inputs.tag || github.ref_name }}.tar.gz
+        asset_content_type: application/gzip
