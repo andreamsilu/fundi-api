@@ -51,6 +51,7 @@ Route::get('/health', function () {
     ]);
 });
 
+
 // Public routes (no authentication required)
 Route::get('/categories', [CategoryController::class, 'index']);
 

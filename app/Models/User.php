@@ -77,6 +77,16 @@ class User extends Authenticatable
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
+            // Handle the specific format: "[\"customer\"]"
+            if (preg_match('/^"(.+)"$/', $value, $matches)) {
+                $innerValue = $matches[1];
+                // Decode the escaped quotes first
+                $innerValue = str_replace('\\"', '"', $innerValue);
+                $decoded = json_decode($innerValue, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    return $decoded;
+                }
+            }
             return [];
         }
         return is_array($value) ? $value : [];

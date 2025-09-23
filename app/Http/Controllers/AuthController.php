@@ -95,6 +95,7 @@ class AuthController extends Controller
 
             $user = User::where('phone', $request->phone)->first();
 
+
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return response()->json([
                     'success' => false,
