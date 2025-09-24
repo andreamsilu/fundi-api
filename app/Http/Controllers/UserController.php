@@ -19,10 +19,46 @@ class UserController extends Controller
             $user = $request->user();
             $user->load('fundiProfile');
 
+            // Compute role-aware stats to display on profile
+            $stats = [];
+
+            if ($user->isCustomer()) {
+                $stats['jobs'] = [
+                    'total' => \App\Models\Job::where('customer_id', $user->id)->count(),
+                    'open' => \App\Models\Job::where('customer_id', $user->id)->where('status', 'open')->count(),
+                    'in_progress' => \App\Models\Job::where('customer_id', $user->id)->where('status', 'in_progress')->count(),
+                    'completed' => \App\Models\Job::where('customer_id', $user->id)->where('status', 'completed')->count(),
+                ];
+            }
+
+            if ($user->isFundi()) {
+                $averageRating = $user->ratingsReceived()->avg('rating') ?? 0;
+                $totalRatings = $user->ratingsReceived()->count();
+
+                $stats['applications'] = [
+                    'total' => \App\Models\JobApplication::where('fundi_id', $user->id)->count(),
+                    'pending' => \App\Models\JobApplication::where('fundi_id', $user->id)->where('status', 'pending')->count(),
+                    'accepted' => \App\Models\JobApplication::where('fundi_id', $user->id)->where('status', 'accepted')->count(),
+                    'rejected' => \App\Models\JobApplication::where('fundi_id', $user->id)->where('status', 'rejected')->count(),
+                ];
+
+                $stats['portfolio'] = [
+                    'total' => $user->getPortfolioCount(),
+                    'visible' => $user->getVisiblePortfolioCount(),
+                ];
+
+                // Attach handy fields for mobile rendering
+                $user->setAttribute('average_rating', round((float) $averageRating, 1));
+                $user->setAttribute('total_ratings', $totalRatings);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'User profile retrieved successfully',
-                'data' => $user
+                'data' => [
+                    'user' => $user,
+                    'stats' => $stats,
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -176,10 +212,36 @@ class UserController extends Controller
                 ], 404);
             }
 
+            // Compute stats for fundi profile display
+            $averageRating = $fundi->ratingsReceived()->avg('rating') ?? 0;
+            $totalRatings = $fundi->ratingsReceived()->count();
+            $stats = [
+                'applications' => [
+                    'total' => \App\Models\JobApplication::where('fundi_id', $fundi->id)->count(),
+                    'pending' => \App\Models\JobApplication::where('fundi_id', $fundi->id)->where('status', 'pending')->count(),
+                    'accepted' => \App\Models\JobApplication::where('fundi_id', $fundi->id)->where('status', 'accepted')->count(),
+                    'rejected' => \App\Models\JobApplication::where('fundi_id', $fundi->id)->where('status', 'rejected')->count(),
+                ],
+                'portfolio' => [
+                    'total' => $fundi->getPortfolioCount(),
+                    'visible' => $fundi->getVisiblePortfolioCount(),
+                ],
+                'ratings' => [
+                    'average' => round((float) $averageRating, 1),
+                    'count' => $totalRatings,
+                ],
+            ];
+
+            $fundi->setAttribute('average_rating', $stats['ratings']['average']);
+            $fundi->setAttribute('total_ratings', $stats['ratings']['count']);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Fundi profile retrieved successfully',
-                'data' => $fundi
+                'data' => [
+                    'user' => $fundi,
+                    'stats' => $stats,
+                ]
             ]);
 
         } catch (\Exception $e) {

@@ -99,12 +99,12 @@ Route::middleware('custom.auth')->group(function () {
     Route::patch('/portfolio/{id}', [PortfolioController::class, 'update'])->middleware('permission:edit_portfolio');
     Route::delete('/portfolio/{id}', [PortfolioController::class, 'destroy'])->middleware('permission:delete_portfolio');
 
-    // Feed routes
-    Route::get('/feeds/fundis', [FeedController::class, 'getFundiFeed'])->middleware('permission:view_fundi_feeds');
-    Route::get('/feeds/jobs', [FeedController::class, 'getJobFeed'])->middleware('permission:view_job_feeds');
-    Route::get('/feeds/fundis/{id}', [FeedController::class, 'getFundiProfile'])->middleware('permission:view_fundi_feeds');
-    Route::get('/feeds/jobs/{id}', [FeedController::class, 'getJobDetails'])->middleware('permission:view_job_feeds');
-    Route::get('/feeds/nearby-fundis', [FeedController::class, 'getNearbyFundis'])->middleware('permission:view_nearby_fundis');
+    // Feed routes (role-checked inside controller, no extra permission required)
+    Route::get('/feeds/fundis', [FeedController::class, 'getFundiFeed']);
+    Route::get('/feeds/jobs', [FeedController::class, 'getJobFeed']);
+    Route::get('/feeds/fundis/{id}', [FeedController::class, 'getFundiProfile']);
+    Route::get('/feeds/jobs/{id}', [FeedController::class, 'getJobDetails']);
+    Route::get('/feeds/nearby-fundis', [FeedController::class, 'getNearbyFundis']);
 
     // Work Approval routes
     Route::get('/work-approval/portfolio-pending', [WorkApprovalController::class, 'getPendingPortfolioItems'])->middleware('permission:view_work_submissions');
