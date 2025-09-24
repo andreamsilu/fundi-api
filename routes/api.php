@@ -79,12 +79,12 @@ Route::middleware('custom.auth')->group(function () {
     Route::delete('/fundi-applications/{id}', [FundiApplicationController::class, 'destroy']);
 
 
-    // Job routes
-    Route::get('/jobs', [JobController::class, 'index'])->middleware('permission:view_jobs');
-    Route::post('/jobs', [JobController::class, 'store'])->middleware('permission:create_jobs');
-    Route::get('/jobs/{id}', [JobController::class, 'show'])->middleware('permission:view_jobs');
-    Route::patch('/jobs/{id}', [JobController::class, 'update'])->middleware('permission:edit_jobs');
-    Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->middleware('permission:delete_jobs');
+    // Job routes (role/payment checks handled in controllers)
+    Route::get('/jobs', [JobController::class, 'index']);
+    Route::post('/jobs', [JobController::class, 'store']);
+    Route::get('/jobs/{id}', [JobController::class, 'show']);
+    Route::patch('/jobs/{id}', [JobController::class, 'update']);
+    Route::delete('/jobs/{id}', [JobController::class, 'destroy']);
 
     // Job Application routes
     Route::post('/jobs/{jobId}/apply', [JobApplicationController::class, 'apply'])->middleware('permission:apply_jobs');
