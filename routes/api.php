@@ -120,6 +120,8 @@ Route::middleware('custom.auth')->group(function () {
     Route::post('/payments/subscribe', [PaymentController::class, 'subscribe']);
     Route::post('/payments/cancel-subscription', [PaymentController::class, 'cancelSubscription']);
     Route::get('/payments/history', [PaymentController::class, 'getPaymentHistory']);
+    // Alias for mobile expecting /payments/user
+    Route::get('/payments/user', [PaymentController::class, 'getPaymentHistory']);
     Route::post('/payments/check-permission', [PaymentController::class, 'checkActionPermission']);
     Route::post('/payments/pay-per-use', [PaymentController::class, 'processPayPerUse']);
 
@@ -151,6 +153,8 @@ Route::middleware('custom.auth')->group(function () {
     Route::get('/settings/languages', [SettingsController::class, 'getLanguages']);
     Route::put('/settings/privacy', [SettingsController::class, 'updatePrivacy']);
     Route::put('/settings/notifications', [SettingsController::class, 'updateNotificationSettings']);
+
+    // Dashboard routes removed (not required for mobile)
 
     // Admin routes
     Route::middleware('role:admin')->group(function () {

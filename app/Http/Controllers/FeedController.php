@@ -27,12 +27,13 @@ class FeedController extends Controller
                 ], 403);
             }
 
-            $perPage = $request->get('per_page', 15);
+            // Normalize query parameters (support both snake_case and camelCase used by mobile)
+            $perPage = $request->get('per_page', $request->get('limit', 15));
             $page = $request->get('page', 1);
             $search = $request->get('search');
             $location = $request->get('location');
             $skills = $request->get('skills');
-            $minRating = $request->get('min_rating');
+            $minRating = $request->get('min_rating', $request->get('minRating'));
 
             $query = User::with(['visiblePortfolio.media', 'fundiProfile'])
                 ->whereJsonContains('roles', 'fundi')
@@ -69,20 +70,29 @@ class FeedController extends Controller
                 });
             }
 
-            $fundis = $query->orderBy('created_at', 'desc')
-                ->paginate($perPage, ['*'], 'page', $page);
+            $paginator = $query->orderBy('created_at', 'desc')
+                ->paginate((int) $perPage, ['*'], 'page', (int) $page);
 
             // Transform the data to include portfolio items in the feed
-            $fundis->getCollection()->transform(function ($fundi) {
+            $paginator->getCollection()->transform(function ($fundi) {
                 $fundi->portfolio_items = $fundi->visiblePortfolio;
                 unset($fundi->visiblePortfolio);
                 return $fundi;
             });
 
+            // Shape response to match mobile expectations
             return response()->json([
                 'success' => true,
-                'data' => $fundis,
-                'message' => 'Fundi feed retrieved successfully'
+                'message' => 'Fundi feed retrieved successfully',
+                'data' => [
+                    'fundis' => $paginator->items(),
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                        'last_page' => $paginator->lastPage(),
+                    ],
+                ],
             ]);
 
         } catch (\Exception $e) {
@@ -108,12 +118,12 @@ class FeedController extends Controller
                 ], 403);
             }
 
-            $perPage = $request->get('per_page', 15);
+            $perPage = $request->get('per_page', $request->get('limit', 15));
             $page = $request->get('page', 1);
             $search = $request->get('search');
             $category = $request->get('category');
-            $minBudget = $request->get('min_budget');
-            $maxBudget = $request->get('max_budget');
+            $minBudget = $request->get('min_budget', $request->get('minBudget'));
+            $maxBudget = $request->get('max_budget', $request->get('maxBudget'));
             $location = $request->get('location');
 
             $query = JobPosting::with(['customer', 'category', 'media'])
@@ -147,13 +157,22 @@ class FeedController extends Controller
                 // For now, we'll skip location filtering
             }
 
-            $jobs = $query->orderBy('created_at', 'desc')
-                ->paginate($perPage, ['*'], 'page', $page);
+            $paginator = $query->orderBy('created_at', 'desc')
+                ->paginate((int) $perPage, ['*'], 'page', (int) $page);
 
+            // Shape response to match mobile expectations
             return response()->json([
                 'success' => true,
-                'data' => $jobs,
-                'message' => 'Job feed retrieved successfully'
+                'message' => 'Job feed retrieved successfully',
+                'data' => [
+                    'jobs' => $paginator->items(),
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                        'last_page' => $paginator->lastPage(),
+                    ],
+                ],
             ]);
 
         } catch (\Exception $e) {
@@ -194,13 +213,60 @@ class FeedController extends Controller
 
             // Calculate average rating
             $averageRating = $fundi->ratingsReceived()->avg('rating') ?? 0;
-            $fundi->average_rating = round($averageRating, 1);
-            $fundi->total_ratings = $fundi->ratingsReceived()->count();
+            $totalRatings = $fundi->ratingsReceived()->count();
+
+            // Build response payload matching mobile model needs
+            $profile = [
+                'id' => (string) $fundi->id,
+                'name' => $fundi->full_name ?? ($fundi->name ?? $fundi->phone),
+                'email' => $fundi->email ?? '',
+                'phone' => $fundi->phone,
+                'profileImage' => optional($fundi->fundiProfile)->profile_image ?? null,
+                'location' => $fundi->location ?? '',
+                'rating' => round((float) $averageRating, 1),
+                'totalJobs' => \App\Models\Job::whereHas('applications', function($q) use ($fundi) {
+                    $q->where('fundi_id', $fundi->id)->where('status', 'accepted');
+                })->count(),
+                'completedJobs' => \App\Models\Job::whereHas('applications', function($q) use ($fundi) {
+                    $q->where('fundi_id', $fundi->id)->where('status', 'completed');
+                })->count(),
+                'skills' => is_array($fundi->skills) ? $fundi->skills : [],
+                'certifications' => array_filter([
+                    optional($fundi->fundiProfile)->veta_certificate,
+                ]),
+                'nidaNumber' => $fundi->nida_number ?? null,
+                'vetaCertificate' => optional($fundi->fundiProfile)->veta_certificate ?? null,
+                'isVerified' => (optional($fundi->fundiProfile)->verification_status ?? 'pending') === 'approved',
+                'isAvailable' => true,
+                'bio' => $fundi->bio ?? optional($fundi->fundiProfile)->bio ?? null,
+                'hourlyRate' => (float) (optional($fundi->fundiProfile)->hourly_rate ?? 0),
+                'portfolio' => [
+                    'items' => $fundi->visiblePortfolio?->map(function($p) {
+                        return [
+                            'id' => $p->id,
+                            'title' => $p->title,
+                            'description' => $p->description,
+                            'skills_used' => $p->skills_used,
+                            'media' => $p->media?->map(function($m) {
+                                return [
+                                    'id' => $m->id,
+                                    'media_type' => $m->media_type,
+                                    'file_url' => \Storage::url($m->file_path),
+                                ];
+                            }),
+                            'created_at' => $p->created_at,
+                        ];
+                    }),
+                ],
+                'totalRatings' => $totalRatings,
+                'createdAt' => $fundi->created_at,
+                'updatedAt' => $fundi->updated_at,
+            ];
 
             return response()->json([
                 'success' => true,
-                'data' => $fundi,
-                'message' => 'Fundi profile retrieved successfully'
+                'message' => 'Fundi profile retrieved successfully',
+                'data' => $profile,
             ]);
 
         } catch (\Exception $e) {
