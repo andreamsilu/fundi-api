@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\JobPosting;
+use App\Models\Job;
 use App\Models\Portfolio;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -126,7 +126,7 @@ class FeedController extends Controller
             $maxBudget = $request->get('max_budget', $request->get('maxBudget'));
             $location = $request->get('location');
 
-            $query = JobPosting::with(['customer', 'category', 'media'])
+            $query = Job::with(['customer', 'category', 'media'])
                 ->where('status', 'open')
                 ->where('customer_id', '!=', $user->id); // Exclude own job postings
 
@@ -292,7 +292,7 @@ class FeedController extends Controller
                 ], 403);
             }
 
-            $job = JobPosting::with(['customer', 'category', 'media'])
+            $job = Job::with(['customer', 'category', 'media'])
                 ->where('id', $id)
                 ->where('status', 'open')
                 ->first();
@@ -306,7 +306,7 @@ class FeedController extends Controller
 
             // Check if fundi has already applied for this job
             $hasApplied = $user->jobApplications()
-                ->where('job_posting_id', $id)
+                ->where('job_id', $id)
                 ->exists();
 
             $job->has_applied = $hasApplied;
