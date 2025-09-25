@@ -18,6 +18,7 @@ class UserController extends Controller
         try {
             $user = $request->user();
             $user->load('fundiProfile');
+            // Don't load roles relationship - let the appends handle it
 
             // Compute role-aware stats to display on profile
             $stats = [];
@@ -52,11 +53,15 @@ class UserController extends Controller
                 $user->setAttribute('total_ratings', $totalRatings);
             }
 
+            // Add role_ids to user data for mobile app
+            $userData = $user->toArray();
+            $userData['role_ids'] = $user->getRoleIds();
+
             return response()->json([
                 'success' => true,
                 'message' => 'User profile retrieved successfully',
                 'data' => [
-                    'user' => $user,
+                    'user' => $userData,
                     'stats' => $stats,
                 ]
             ]);

@@ -28,7 +28,9 @@ class PaymentSeeder extends Seeder
         // Create payments for completed jobs
         foreach ($jobs as $job) {
             $customer = $job->customer;
-            $fundi = User::whereJsonContains('roles', 'fundi')->inRandomOrder()->first();
+            $fundi = User::whereHas('roles', function($q) {
+                $q->where('name', 'fundi');
+            })->inRandomOrder()->first();
             
             if (!$fundi) continue;
 
@@ -51,7 +53,9 @@ class PaymentSeeder extends Seeder
         }
 
         // Create subscription payments for fundis
-        $fundis = User::whereJsonContains('roles', 'fundi')->get();
+        $fundis = User::whereHas('roles', function($q) {
+            $q->where('name', 'fundi');
+        })->get();
         foreach ($fundis as $fundi) {
             if (rand(1, 100) <= 30) { // 30% of fundis have subscription payments
                 Payment::create([
@@ -94,7 +98,9 @@ class PaymentSeeder extends Seeder
         }
 
         // Create job posting fees for customers
-        $customers = User::whereJsonContains('roles', 'customer')->get();
+        $customers = User::whereHas('roles', function($q) {
+            $q->where('name', 'customer');
+        })->get();
         foreach ($customers as $customer) {
             $customerJobs = Job::where('customer_id', $customer->id)->get();
             foreach ($customerJobs as $job) {

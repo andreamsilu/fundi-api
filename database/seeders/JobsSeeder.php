@@ -15,7 +15,9 @@ class JobsSeeder extends Seeder
     public function run(): void
     {
         // Get some users and categories for relationships
-        $customers = User::where('roles', 'like', '%customer%')->take(10)->get();
+        $customers = User::whereHas('roles', function($q) {
+            $q->where('name', 'customer');
+        })->take(10)->get();
         $categories = Category::all();
 
         if ($customers->isEmpty() || $categories->isEmpty()) {

@@ -15,8 +15,12 @@ class RatingReviewSeeder extends Seeder
      */
     public function run(): void
     {
-        $customers = User::whereJsonContains('roles', 'customer')->get();
-        $fundis = User::whereJsonContains('roles', 'fundi')->get();
+        $customers = User::whereHas('roles', function($q) {
+            $q->where('name', 'customer');
+        })->get();
+        $fundis = User::whereHas('roles', function($q) {
+            $q->where('name', 'fundi');
+        })->get();
         $completedJobs = Job::where('status', 'completed')->get();
 
         if ($customers->isEmpty() || $fundis->isEmpty() || $completedJobs->isEmpty()) {

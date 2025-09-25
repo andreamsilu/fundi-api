@@ -17,8 +17,11 @@ class Job extends Model
         'description',
         'budget',
         'deadline',
+        'location',
         'location_lat',
         'location_lng',
+        'urgency',
+        'preferred_time',
         'status',
     ];
 

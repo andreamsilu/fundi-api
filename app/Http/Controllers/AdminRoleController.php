@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Role;
-use App\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +17,8 @@ class AdminRoleController extends Controller
     public function getUsersWithRoles(Request $request): JsonResponse
     {
         try {
-            $users = User::select('id', 'phone', 'roles', 'status', 'created_at')
+            $users = User::select('id', 'phone', 'status', 'created_at')
+                ->with('roles')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
@@ -26,10 +27,10 @@ class AdminRoleController extends Controller
                 return [
                     'id' => $user->id,
                     'phone' => $user->phone,
-                    'roles' => $user->roles,
-                    'primary_role' => $user->primary_role,
-                    'role_display_name' => $user->role_display_name,
-                    'has_multiple_roles' => $user->hasMultipleRoles(),
+                    'roles' => $user->getRoleNames()->toArray(),
+                    'primary_role' => $user->getRoleNames()->first() ?? 'customer',
+                    'role_display_name' => $user->getRoleNames()->implode(' + '),
+                    'has_multiple_roles' => $user->getRoleNames()->count() > 1,
                     'status' => $user->status,
                     'created_at' => $user->created_at,
                 ];
@@ -54,17 +55,17 @@ class AdminRoleController extends Controller
     public function getUserRoles(Request $request, $userId): JsonResponse
     {
         try {
-            $user = User::findOrFail($userId);
+            $user = User::with('roles')->findOrFail($userId);
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'user_id' => $user->id,
                     'phone' => $user->phone,
-                    'roles' => $user->roles,
-                    'primary_role' => $user->primary_role,
-                    'role_display_name' => $user->role_display_name,
-                    'has_multiple_roles' => $user->hasMultipleRoles(),
+                    'roles' => $user->getRoleNames()->toArray(),
+                    'primary_role' => $user->getRoleNames()->first() ?? 'customer',
+                    'role_display_name' => $user->getRoleNames()->implode(' + '),
+                    'has_multiple_roles' => $user->getRoleNames()->count() > 1,
                     'can_become_fundi' => $user->canBecomeFundi(),
                     'can_become_admin' => $user->canBecomeAdmin(),
                 ]
@@ -99,14 +100,15 @@ class AdminRoleController extends Controller
             $user = User::findOrFail($userId);
             $role = $request->input('role');
 
-            if ($user->addRole($role)) {
+            if (!$user->hasRole($role)) {
+                $user->assignRole($role);
                 return response()->json([
                     'success' => true,
                     'message' => "Role '{$role}' added successfully",
                     'data' => [
                         'user_id' => $user->id,
-                        'roles' => $user->roles,
-                        'role_display_name' => $user->role_display_name,
+                        'roles' => $user->getRoleNames()->toArray(),
+                        'role_display_name' => $user->getRoleNames()->implode(' + '),
                     ]
                 ]);
             } else {
@@ -146,21 +148,22 @@ class AdminRoleController extends Controller
             $role = $request->input('role');
 
             // Prevent removing the last role
-            if (count($user->roles) <= 1) {
+            if ($user->getRoleNames()->count() <= 1) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot remove the last role. User must have at least one role.'
                 ], 400);
             }
 
-            if ($user->removeRole($role)) {
+            if ($user->hasRole($role)) {
+                $user->removeRole($role);
                 return response()->json([
                     'success' => true,
                     'message' => "Role '{$role}' removed successfully",
                     'data' => [
                         'user_id' => $user->id,
-                        'roles' => $user->roles,
-                        'role_display_name' => $user->role_display_name,
+                        'roles' => $user->getRoleNames()->toArray(),
+                        'role_display_name' => $user->getRoleNames()->implode(' + '),
                     ]
                 ]);
             } else {
@@ -200,16 +203,16 @@ class AdminRoleController extends Controller
             $user = User::findOrFail($userId);
             $roles = array_unique($request->input('roles')); // Remove duplicates
 
-            $user->update(['roles' => $roles]);
+            $user->syncRoles($roles);
 
             return response()->json([
                 'success' => true,
                 'message' => 'User roles updated successfully',
                 'data' => [
                     'user_id' => $user->id,
-                    'roles' => $user->roles,
-                    'role_display_name' => $user->role_display_name,
-                    'has_multiple_roles' => $user->hasMultipleRoles(),
+                    'roles' => $user->getRoleNames()->toArray(),
+                    'role_display_name' => $user->getRoleNames()->implode(' + '),
+                    'has_multiple_roles' => $user->getRoleNames()->count() > 1,
                 ]
             ]);
 
@@ -235,8 +238,8 @@ class AdminRoleController extends Controller
                     'message' => 'User promoted to fundi successfully',
                     'data' => [
                         'user_id' => $user->id,
-                        'roles' => $user->roles,
-                        'role_display_name' => $user->role_display_name,
+                        'roles' => $user->getRoleNames()->toArray(),
+                        'role_display_name' => $user->getRoleNames()->implode(' + '),
                     ]
                 ]);
             } else {
@@ -268,8 +271,8 @@ class AdminRoleController extends Controller
                     'message' => 'User promoted to admin successfully',
                     'data' => [
                         'user_id' => $user->id,
-                        'roles' => $user->roles,
-                        'role_display_name' => $user->role_display_name,
+                        'roles' => $user->getRoleNames()->toArray(),
+                        'role_display_name' => $user->getRoleNames()->implode(' + '),
                     ]
                 ]);
             } else {
@@ -302,8 +305,8 @@ class AdminRoleController extends Controller
                 'message' => 'User demoted to customer successfully',
                 'data' => [
                     'user_id' => $user->id,
-                    'roles' => $user->roles,
-                    'role_display_name' => $user->role_display_name,
+                    'roles' => $user->getRoleNames()->toArray(),
+                    'role_display_name' => $user->getRoleNames()->implode(' + '),
                 ]
             ]);
 
@@ -322,10 +325,21 @@ class AdminRoleController extends Controller
     {
         try {
             $totalUsers = User::count();
-            $customers = User::whereJsonContains('roles', 'customer')->count();
-            $fundis = User::whereJsonContains('roles', 'fundi')->count();
-            $admins = User::whereJsonContains('roles', 'admin')->count();
-            $multiRoleUsers = User::whereRaw('JSON_LENGTH(roles) > 1')->count();
+            $customers = User::whereHas('roles', function($q) {
+                $q->where('name', 'customer');
+            })->count();
+            $fundis = User::whereHas('roles', function($q) {
+                $q->where('name', 'fundi');
+            })->count();
+            $admins = User::whereHas('roles', function($q) {
+                $q->where('name', 'admin');
+            })->count();
+            // Count users with multiple roles
+            $multiRoleUsers = User::whereHas('roles', function($q) {
+                // This is a simplified check - we'll count users with more than one role
+            })->get()->filter(function($user) {
+                return $user->roles->count() > 1;
+            })->count();
 
             return response()->json([
                 'success' => true,
@@ -335,8 +349,11 @@ class AdminRoleController extends Controller
                     'fundis' => $fundis,
                     'admins' => $admins,
                     'multi_role_users' => $multiRoleUsers,
-                    'customer_fundi_combinations' => User::whereJsonContains('roles', 'customer')
-                        ->whereJsonContains('roles', 'fundi')->count(),
+                    'customer_fundi_combinations' => User::whereHas('roles', function($q) {
+                        $q->where('name', 'customer');
+                    })->whereHas('roles', function($q) {
+                        $q->where('name', 'fundi');
+                    })->count(),
                 ]
             ]);
 
@@ -415,11 +432,8 @@ class AdminRoleController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255|unique:roles,name',
-                'display_name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:1000',
                 'permissions' => 'nullable|array',
                 'permissions.*' => 'exists:permissions,name',
-                'sort_order' => 'nullable|integer|min:0',
             ]);
 
             if ($validator->fails()) {
@@ -432,11 +446,7 @@ class AdminRoleController extends Controller
 
             $role = Role::create([
                 'name' => $request->input('name'),
-                'display_name' => $request->input('display_name'),
-                'description' => $request->input('description'),
-                'is_system_role' => false,
-                'is_active' => true,
-                'sort_order' => $request->input('sort_order', 0),
+                'guard_name' => 'web'
             ]);
 
             // Assign permissions if provided
@@ -468,22 +478,10 @@ class AdminRoleController extends Controller
         try {
             $role = Role::findOrFail($roleId);
 
-            // Prevent editing system roles
-            if ($role->is_system_role) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot edit system roles'
-                ], 400);
-            }
-
             $validator = Validator::make($request->all(), [
                 'name' => 'sometimes|string|max:255|unique:roles,name,' . $roleId,
-                'display_name' => 'sometimes|string|max:255',
-                'description' => 'nullable|string|max:1000',
                 'permissions' => 'nullable|array',
                 'permissions.*' => 'exists:permissions,name',
-                'sort_order' => 'nullable|integer|min:0',
-                'is_active' => 'sometimes|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -494,9 +492,7 @@ class AdminRoleController extends Controller
                 ], 422);
             }
 
-            $role->update($request->only([
-                'name', 'display_name', 'description', 'sort_order', 'is_active'
-            ]));
+            $role->update($request->only(['name']));
 
             // Update permissions if provided
             if ($request->has('permissions')) {
@@ -527,16 +523,10 @@ class AdminRoleController extends Controller
         try {
             $role = Role::findOrFail($roleId);
 
-            // Prevent deleting system roles
-            if ($role->is_system_role) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot delete system roles'
-                ], 400);
-            }
-
             // Check if any users have this role
-            $usersWithRole = User::whereJsonContains('roles', $role->name)->count();
+            $usersWithRole = User::whereHas('roles', function($q) use ($role) {
+                $q->where('name', $role->name);
+            })->count();
             if ($usersWithRole > 0) {
                 return response()->json([
                     'success' => false,
@@ -566,17 +556,12 @@ class AdminRoleController extends Controller
     {
         try {
             $query = Role::with('permissions')
-                ->orderBy('sort_order')
-                ->orderBy('display_name');
+                ->orderBy('name');
 
             // Apply search filter
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('display_name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
-                });
+                $query->where('name', 'like', "%{$search}%");
             }
 
             $roles = $query->paginate(10);
@@ -600,11 +585,7 @@ class AdminRoleController extends Controller
     public function getAllPermissions(Request $request): JsonResponse
     {
         try {
-            $permissions = Permission::active()
-                ->orderBy('category')
-                ->orderBy('display_name')
-                ->get()
-                ->groupBy('category');
+            $permissions = Permission::orderBy('name')->get();
 
             return response()->json([
                 'success' => true,
@@ -627,9 +608,6 @@ class AdminRoleController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255|unique:permissions,name',
-                'display_name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:1000',
-                'category' => 'required|string|max:255',
             ]);
 
             if ($validator->fails()) {
@@ -642,11 +620,7 @@ class AdminRoleController extends Controller
 
             $permission = Permission::create([
                 'name' => $request->input('name'),
-                'display_name' => $request->input('display_name'),
-                'description' => $request->input('description'),
-                'category' => $request->input('category'),
-                'is_system_permission' => false,
-                'is_active' => true,
+                'guard_name' => 'web'
             ]);
 
             return response()->json([

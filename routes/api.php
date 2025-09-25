@@ -32,12 +32,15 @@ use App\Http\Controllers\ErrorController;
 */
 
 // Public routes (no authentication required)
-Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/login', [AuthController::class, 'login']);
-Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
-Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
-Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+// Apply stricter rate limiting to auth endpoints to prevent brute-force
+Route::middleware('throttle:20,1')->group(function () {
+    Route::post('/auth/register', [AuthController::class, 'register']);
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
+    Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+});
 
 // Health check endpoint (no authentication required)
 Route::get('/health', function () {
@@ -56,7 +59,8 @@ Route::get('/health', function () {
 Route::get('/categories', [CategoryController::class, 'index']);
 
 // Protected routes (authentication required)
-Route::middleware('custom.auth')->group(function () {
+// Apply general rate limiting for authenticated API usage
+Route::middleware(['custom.auth', 'throttle:60,1'])->group(function () {
     // Authentication routes
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -81,6 +85,8 @@ Route::middleware('custom.auth')->group(function () {
 
     // Job routes (role/payment checks handled in controllers)
     Route::get('/jobs', [JobController::class, 'index']);
+    // Alias for mobile: returns authenticated user's jobs (customers) or scoped jobs
+    Route::get('/jobs/my-jobs', [JobController::class, 'index']);
     Route::post('/jobs', [JobController::class, 'store']);
     Route::get('/jobs/{id}', [JobController::class, 'show']);
     Route::patch('/jobs/{id}', [JobController::class, 'update']);

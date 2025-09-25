@@ -32,7 +32,7 @@ class PermissionMiddleware
         // Check if user has any of the required permissions
         $hasRequiredPermission = false;
         foreach ($permissions as $permission) {
-            if ($user->hasPermission($permission)) {
+            if ($user->hasPermissionTo($permission)) {
                 $hasRequiredPermission = true;
                 break;
             }

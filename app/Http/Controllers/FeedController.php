@@ -20,10 +20,11 @@ class FeedController extends Controller
         try {
             $user = Auth::user();
             
-            if (!$user->isCustomer()) {
+            // Allow customers, fundis, and admins to view fundi feed
+            if (!$user->isCustomer() && !$user->isFundi() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only customers can view fundi feed'
+                    'message' => 'Only customers, fundis, and admins can view fundi feed'
                 ], 403);
             }
 
@@ -36,7 +37,9 @@ class FeedController extends Controller
             $minRating = $request->get('min_rating', $request->get('minRating'));
 
             $query = User::with(['visiblePortfolio.media', 'fundiProfile'])
-                ->whereJsonContains('roles', 'fundi')
+                ->whereHas('roles', function($q) {
+                    $q->where('name', 'fundi');
+                })
                 ->where('status', 'active');
 
             // Apply search filter
@@ -111,10 +114,11 @@ class FeedController extends Controller
         try {
             $user = Auth::user();
             
-            if (!$user->isFundi()) {
+            // Allow fundis, customers, and admins to view job feed
+            if (!$user->isFundi() && !$user->isCustomer() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only fundis can view job feed'
+                    'message' => 'Only fundis, customers, and admins can view job feed'
                 ], 403);
             }
 
@@ -191,16 +195,19 @@ class FeedController extends Controller
         try {
             $user = Auth::user();
             
-            if (!$user->isCustomer()) {
+            // Allow customers, fundis, and admins to view fundi profiles
+            if (!$user->isCustomer() && !$user->isFundi() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only customers can view fundi profiles'
+                    'message' => 'Only customers, fundis, and admins can view fundi profiles'
                 ], 403);
             }
 
             $fundi = User::with(['visiblePortfolio.media', 'fundiProfile', 'ratingsReceived'])
                 ->where('id', $id)
-                ->whereJsonContains('roles', 'fundi')
+                ->whereHas('roles', function($q) {
+                    $q->where('name', 'fundi');
+                })
                 ->where('status', 'active')
                 ->first();
 
@@ -285,10 +292,11 @@ class FeedController extends Controller
         try {
             $user = Auth::user();
             
-            if (!$user->isFundi()) {
+            // Allow fundis, customers, and admins to view job details
+            if (!$user->isFundi() && !$user->isCustomer() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only fundis can view job details'
+                    'message' => 'Only fundis, customers, and admins can view job details'
                 ], 403);
             }
 
@@ -333,10 +341,11 @@ class FeedController extends Controller
         try {
             $user = Auth::user();
             
-            if (!$user->isCustomer()) {
+            // Allow customers, fundis, and admins to view nearby fundis
+            if (!$user->isCustomer() && !$user->isFundi() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only customers can view nearby fundis'
+                    'message' => 'Only customers, fundis, and admins can view nearby fundis'
                 ], 403);
             }
 
@@ -360,7 +369,9 @@ class FeedController extends Controller
 
             // This is a simplified version - you might want to use a proper geospatial query
             $fundis = User::with(['visiblePortfolio.media', 'fundiProfile'])
-                ->whereJsonContains('roles', 'fundi')
+                ->whereHas('roles', function($q) {
+                    $q->where('name', 'fundi');
+                })
                 ->where('status', 'active')
                 ->get()
                 ->filter(function ($fundi) use ($latitude, $longitude, $radius) {

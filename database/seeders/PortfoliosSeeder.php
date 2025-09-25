@@ -14,7 +14,9 @@ class PortfoliosSeeder extends Seeder
     public function run(): void
     {
         // Get fundis for relationships
-        $fundis = User::where('roles', 'like', '%fundi%')->take(10)->get();
+        $fundis = User::whereHas('roles', function($q) {
+            $q->where('name', 'fundi');
+        })->take(10)->get();
 
         if ($fundis->isEmpty()) {
             $this->command->warn('No fundis found. Please run UserSeeder first.');

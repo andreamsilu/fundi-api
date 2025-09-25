@@ -16,7 +16,9 @@ class JobApplicationsSeeder extends Seeder
     {
         // Get jobs and fundis for relationships
         $jobs = Job::all();
-        $fundis = User::where('roles', 'like', '%fundi%')->take(15)->get();
+        $fundis = User::whereHas('roles', function($q) {
+            $q->where('name', 'fundi');
+        })->take(15)->get();
 
         if ($jobs->isEmpty() || $fundis->isEmpty()) {
             $this->command->warn('No jobs or fundis found. Please run JobsSeeder and UserSeeder first.');

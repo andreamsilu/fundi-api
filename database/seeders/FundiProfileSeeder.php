@@ -13,8 +13,10 @@ class FundiProfileSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get fundi users (users who have 'fundi' in their roles array)
-        $fundiUsers = User::whereJsonContains('roles', 'fundi')->get();
+        // Get fundi users
+        $fundiUsers = User::whereHas('roles', function($q) {
+            $q->where('name', 'fundi');
+        })->get();
 
         foreach ($fundiUsers as $index => $user) {
             FundiProfile::updateOrCreate(

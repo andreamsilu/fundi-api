@@ -1,0 +1,1178 @@
+{
+  "info": {
+    "name": "Fundi Role-Based API Tests",
+    "description": "Comprehensive role-based test collection for Fundi API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fundiToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "multiRoleToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supervisorToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fundiUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "multiRoleUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jobId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "portfolioId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication Tests",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0754289824\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.token) {",
+                  "        pm.collectionVariables.set('adminToken', response.data.token);",
+                  "        pm.collectionVariables.set('adminUserId', response.data.user.id);",
+                  "        console.log('Admin login successful. Token saved.');",
+                  "    }",
+                  "}",
+                  "pm.test('Admin login should succeed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "    pm.expect(pm.response.json().data.user.roles).to.include('admin');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0654289825\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.token) {",
+                  "        pm.collectionVariables.set('customerToken', response.data.token);",
+                  "        pm.collectionVariables.set('customerUserId', response.data.user.id);",
+                  "        console.log('Customer login successful. Token saved.');",
+                  "    }",
+                  "}",
+                  "pm.test('Customer login should succeed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "    pm.expect(pm.response.json().data.user.roles).to.include('customer');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Fundi",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0654289827\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.token) {",
+                  "        pm.collectionVariables.set('fundiToken', response.data.token);",
+                  "        pm.collectionVariables.set('fundiUserId', response.data.user.id);",
+                  "        console.log('Fundi login successful. Token saved.');",
+                  "    }",
+                  "}",
+                  "pm.test('Fundi login should succeed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "    pm.expect(pm.response.json().data.user.roles).to.include('fundi');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Multi-role User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0754289832\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.token) {",
+                  "        pm.collectionVariables.set('multiRoleToken', response.data.token);",
+                  "        pm.collectionVariables.set('multiRoleUserId', response.data.user.id);",
+                  "        console.log('Multi-role user login successful. Token saved.');",
+                  "    }",
+                  "}",
+                  "pm.test('Multi-role user login should succeed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "    const roles = pm.response.json().data.user.roles;",
+                  "    pm.expect(roles).to.include('customer');",
+                  "    pm.expect(roles).to.include('fundi');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Job Management Tests",
+      "item": [
+        {
+          "name": "Customer - Create Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Fix Kitchen Sink\",\n  \"description\": \"Need to fix a leaking kitchen sink\",\n  \"category_id\": 1,\n  \"budget\": 5000,\n  \"location\": \"Dar es Salaam, Tanzania\",\n  \"urgency\": \"medium\",\n  \"preferred_time\": \"weekend\",\n  \"deadline\": \"28-09-2025\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.id) {",
+                  "        pm.collectionVariables.set('jobId', response.data.id);",
+                  "        console.log('Job created successfully. Job ID saved.');",
+                  "    }",
+                  "}",
+                  "pm.test('Customer should be able to create job', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fundi - Apply for Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{fundiToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requirements\": \"I have 5+ years experience in plumbing. I can provide references and portfolio.\",\n  \"budget_breakdown\": {\n    \"materials\": 2000,\n    \"labor\": 2500,\n    \"permits\": 500\n  },\n  \"estimated_time\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/{{jobId}}/apply",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "{{jobId}}", "apply"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fundi should be able to apply for job', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Apply for Job (Should Work)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requirements\": \"Admin applying for job with full permissions.\",\n  \"budget_breakdown\": {\n    \"materials\": 1500,\n    \"labor\": 2000,\n    \"permits\": 500\n  },\n  \"estimated_time\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/{{jobId}}/apply",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "{{jobId}}", "apply"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to apply for job', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer - View Job Applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/{{jobId}}/applications",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "{{jobId}}", "applications"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Customer should be able to view job applications', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fundi - View My Applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{fundiToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/job-applications/my-applications",
+              "host": ["{{baseUrl}}"],
+              "path": ["job-applications", "my-applications"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fundi should be able to view their applications', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Portfolio Management Tests",
+      "item": [
+        {
+          "name": "Fundi - Create Portfolio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{fundiToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Modern Kitchen Renovation\",\n  \"description\": \"Complete kitchen transformation with custom cabinets, quartz countertops, and modern appliances. Project completed in 3 weeks.\",\n  \"skills_used\": \"Carpentry, Plumbing, Electrical, Tile Work\",\n  \"duration_hours\": 120,\n  \"budget\": 25000.00,\n  \"status\": \"pending\",\n  \"is_visible\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portfolio",
+              "host": ["{{baseUrl}}"],
+              "path": ["portfolio"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.id) {",
+                  "        pm.collectionVariables.set('portfolioId', response.data.id);",
+                  "        console.log('Portfolio created successfully. Portfolio ID saved.');",
+                  "    }",
+                  "}",
+                  "pm.test('Fundi should be able to create portfolio', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fundi - View My Portfolio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{fundiToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portfolio/my-portfolio",
+              "host": ["{{baseUrl}}"],
+              "path": ["portfolio", "my-portfolio"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fundi should be able to view their portfolio', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer - View Fundi Portfolio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portfolio/{{fundiUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portfolio", "{{fundiUserId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Customer should be able to view fundi portfolio', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Feed Tests",
+      "item": [
+        {
+          "name": "Customer - View Fundi Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds/fundis",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "fundis"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Customer should be able to view fundi feed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fundi - View Fundi Feed (Should Work)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{fundiToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds/fundis",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "fundis"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fundi should be able to view fundi feed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - View Fundi Feed (Should Work)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds/fundis",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "fundis"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to view fundi feed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fundi - View Job Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{fundiToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "jobs"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fundi should be able to view job feed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - View Job Feed (Should Work)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "jobs"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to view job feed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin Role Management Tests",
+      "item": [
+        {
+          "name": "Admin - Create New Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"supervisor\",\n  \"permissions\": [\"view_users\", \"moderate_ratings\", \"view_analytics\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to create new role', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Create New Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"supervise_work\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to create new permission', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Get All Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to get all roles', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Get All Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "permissions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to get all permissions', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Assign Role to User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"supervisor\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles/users/{{customerUserId}}/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles", "users", "{{customerUserId}}", "add"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to assign role to user', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Get Users with Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles", "users"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin should be able to get users with roles', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Permission Denied Tests",
+      "item": [
+        {
+          "name": "Customer - Try to Create Portfolio (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Portfolio\",\n  \"description\": \"This should fail\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portfolio",
+              "host": ["{{baseUrl}}"],
+              "path": ["portfolio"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Customer should NOT be able to create portfolio', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer - Try to Apply for Job (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requirements\": \"Customer trying to apply\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/{{jobId}}/apply",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "{{jobId}}", "apply"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Customer should NOT be able to apply for job', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fundi - Try to Create Job (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{fundiToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Fundi trying to create job\",\n  \"description\": \"This should fail\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fundi should NOT be able to create job', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer - Try to Access Admin Routes (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "roles"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Customer should NOT be able to access admin routes', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Multi-Role User Tests",
+      "item": [
+        {
+          "name": "Multi-role User - Create Job (Customer Role)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{multiRoleToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Multi-role User Job\",\n  \"description\": \"Job created by user with customer and fundi roles\",\n  \"category_id\": 1,\n  \"budget\": 3000,\n  \"location\": \"Dar es Salaam, Tanzania\",\n  \"urgency\": \"low\",\n  \"preferred_time\": \"weekday\",\n  \"deadline\": \"30-09-2025\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Multi-role user should be able to create job (customer role)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Multi-role User - Apply for Job (Fundi Role)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{multiRoleToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requirements\": \"Multi-role user applying as fundi\",\n  \"budget_breakdown\": {\n    \"materials\": 1000,\n    \"labor\": 1500,\n    \"permits\": 200\n  },\n  \"estimated_time\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/{{jobId}}/apply",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "{{jobId}}", "apply"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Multi-role user should be able to apply for job (fundi role)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Multi-role User - Create Portfolio (Fundi Role)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{multiRoleToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Multi-role User Portfolio\",\n  \"description\": \"Portfolio created by user with multiple roles\",\n  \"skills_used\": \"Multi-skilled professional\",\n  \"duration_hours\": 80,\n  \"budget\": 15000.00,\n  \"status\": \"pending\",\n  \"is_visible\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portfolio",
+              "host": ["{{baseUrl}}"],
+              "path": ["portfolio"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Multi-role user should be able to create portfolio (fundi role)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

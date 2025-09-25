@@ -19,12 +19,9 @@ class AuthController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'phone' => 'required|string|max:15|unique:users',
+                'phone' => ['required','string','regex:/^(06|07)[0-9]{8}$/','unique:users,phone'],
                 'password' => 'required|string|min:6',
                 'nida_number' => 'sometimes|string|max:20', // Optional during registration, will be filled in profile
-                // Roles are optional and will default to ['customer']
-                'roles' => 'sometimes|array',
-                'roles.*' => 'string|in:customer,fundi,admin,moderator,premium_customer',
             ]);
 
             if ($validator->fails()) {
@@ -35,15 +32,16 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Always default to customer role unless explicitly specified
-            $roles = $request->get('roles', ['customer']);
-
             $user = User::create([
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
-                'roles' => $roles, // Will be ['customer'] by default
                 'nida_number' => $request->nida_number ?? 'N/A', // Provide default value if not provided
             ]);
+
+            // Assign default customer role using Laravel-permission
+            if (!$user->hasRole('customer')) {
+                $user->assignRole('customer');
+            }
 
             $token = $user->createToken(
                 'auth_token',
@@ -60,7 +58,7 @@ class AuthController extends Controller
                 'data' => [
                     'id' => $user->id,
                     'phone' => $user->phone,
-                    'roles' => $user->roles,
+                    'roles' => $user->getRoleNames()->toArray(),
                     'token' => $token->plainTextToken,
                 ]
             ], 201);

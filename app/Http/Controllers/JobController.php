@@ -18,7 +18,15 @@ class JobController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Job::with(['customer', 'category', 'applications']);
+            $user = $request->user();
+            $query = Job::with(['customer', 'category', 'applications', 'media']);
+
+            // For customers: show only their own jobs
+            // For fundis: show all jobs (they can browse and apply)
+            // For admins: show all jobs
+            if ($user->isCustomer()) {
+                $query->where('customer_id', $user->id);
+            }
 
             // Filter by category
             if ($request->has('category_id')) {
@@ -45,12 +53,21 @@ class JobController extends Controller
                 ", [$lat, $lng, $lat, $radius]);
             }
 
-            $jobs = $query->orderBy('created_at', 'desc')->paginate(15);
+            $paginator = $query->orderBy('created_at', 'desc')->paginate(15);
 
+            // Shape response to match mobile expectations (consistent with FeedController)
             return response()->json([
                 'success' => true,
                 'message' => 'Jobs retrieved successfully',
-                'data' => $jobs
+                'data' => [
+                    'jobs' => $paginator->items(),
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                        'last_page' => $paginator->lastPage(),
+                    ],
+                ],
             ]);
 
         } catch (\Exception $e) {
@@ -98,8 +115,11 @@ class JobController extends Controller
                 'description' => 'required|string',
                 'budget' => 'nullable|numeric|min:0',
                 'deadline' => 'nullable|date|after:today',
+                'location' => 'nullable|string|max:255',
                 'location_lat' => 'nullable|numeric|between:-90,90',
                 'location_lng' => 'nullable|numeric|between:-180,180',
+                'urgency' => 'nullable|in:low,medium,high',
+                'preferred_time' => 'nullable|string|max:100',
             ]);
 
             if ($validator->fails()) {
@@ -117,8 +137,11 @@ class JobController extends Controller
                 'description' => $request->description,
                 'budget' => $request->budget,
                 'deadline' => $request->deadline,
+                'location' => $request->location,
                 'location_lat' => $request->location_lat,
                 'location_lng' => $request->location_lng,
+                'urgency' => $request->urgency,
+                'preferred_time' => $request->preferred_time,
             ]);
 
             $job->load(['customer', 'category']);
@@ -213,8 +236,11 @@ class JobController extends Controller
                 'description' => 'sometimes|string',
                 'budget' => 'sometimes|numeric|min:0',
                 'deadline' => 'sometimes|date|after:today',
+                'location' => 'sometimes|string|max:255',
                 'location_lat' => 'sometimes|numeric|between:-90,90',
                 'location_lng' => 'sometimes|numeric|between:-180,180',
+                'urgency' => 'sometimes|in:low,medium,high',
+                'preferred_time' => 'sometimes|string|max:100',
                 'status' => 'sometimes|in:open,in_progress,completed,cancelled',
             ]);
 
@@ -228,7 +254,8 @@ class JobController extends Controller
 
             $job->update($request->only([
                 'title', 'description', 'budget', 'deadline',
-                'location_lat', 'location_lng', 'status'
+                'location', 'location_lat', 'location_lng', 
+                'urgency', 'preferred_time', 'status'
             ]));
 
             $job->load(['customer', 'category']);

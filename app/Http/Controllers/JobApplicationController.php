@@ -20,10 +20,11 @@ class JobApplicationController extends Controller
         try {
             $user = $request->user();
 
-            if (!$user->isFundi()) {
+            // Allow fundis and admins to apply for jobs
+            if (!$user->isFundi() && !$user->isAdmin()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only fundis can apply for jobs'
+                    'message' => 'Only fundis and admins can apply for jobs'
                 ], 403);
             }
 
@@ -75,7 +76,7 @@ class JobApplicationController extends Controller
                 'budget_breakdown' => 'required|array',
                 'budget_breakdown.materials' => 'required|numeric|min:0',
                 'budget_breakdown.labor' => 'required|numeric|min:0',
-                'budget_breakdown.transport' => 'required|numeric|min:0',
+                'budget_breakdown.transport' => 'nullable|numeric|min:0',
                 'estimated_time' => 'required|integer|min:1',
             ]);
 

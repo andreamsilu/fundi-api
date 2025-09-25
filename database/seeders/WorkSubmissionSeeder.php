@@ -14,8 +14,10 @@ class WorkSubmissionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get fundi users and job postings (users who have 'fundi' in their roles array)
-        $fundis = User::whereJsonContains('roles', 'fundi')->where('status', 'active')->get();
+        // Get fundi users and job postings
+        $fundis = User::whereHas('roles', function($q) {
+            $q->where('name', 'fundi');
+        })->where('status', 'active')->get();
         $jobs = Job::where('status', 'open')->get();
 
         if ($fundis->isEmpty() || $jobs->isEmpty()) {
