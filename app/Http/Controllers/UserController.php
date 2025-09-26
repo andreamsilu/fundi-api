@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\FundiProfile;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -17,8 +18,7 @@ class UserController extends Controller
     {
         try {
             $user = $request->user();
-            $user->load('fundiProfile');
-            // Don't load roles relationship - let the appends handle it
+            $user->load(['fundiProfile', 'roles', 'permissions']);
 
             // Compute role-aware stats to display on profile
             $stats = [];
@@ -53,15 +53,14 @@ class UserController extends Controller
                 $user->setAttribute('total_ratings', $totalRatings);
             }
 
-            // Add role_ids to user data for mobile app
-            $userData = $user->toArray();
-            $userData['role_ids'] = $user->getRoleIds();
+            // Use UserResource for safe serialization
+            $userResource = new UserResource($user);
 
             return response()->json([
                 'success' => true,
                 'message' => 'User profile retrieved successfully',
                 'data' => [
-                    'user' => $userData,
+                    'user' => $userResource,
                     'stats' => $stats,
                 ]
             ]);

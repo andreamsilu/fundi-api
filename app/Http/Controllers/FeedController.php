@@ -68,11 +68,26 @@ class FeedController extends Controller
             $paginator = $query->orderBy('created_at', 'desc')
                 ->paginate((int) $perPage, ['*'], 'page', (int) $page);
 
-            // Transform the data to include portfolio items in the feed
+            // Transform the data to include portfolio items in the feed (safe serialization)
             $paginator->getCollection()->transform(function ($fundi) {
-                $fundi->portfolio_items = $fundi->visiblePortfolio;
-                unset($fundi->visiblePortfolio);
-                return $fundi;
+                $fundiData = $fundi->toArray();
+                $fundiData['portfolio_items'] = $fundi->visiblePortfolio->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'title' => $item->title,
+                        'description' => $item->description,
+                        'skills_used' => $item->skills_used,
+                        'media' => $item->media->map(function($media) {
+                            return [
+                                'id' => $media->id,
+                                'media_type' => $media->media_type,
+                                'file_url' => $media->file_url,
+                            ];
+                        }),
+                        'created_at' => $item->created_at,
+                    ];
+                });
+                return $fundiData;
             });
 
             // Shape response to match mobile expectations
@@ -114,7 +129,7 @@ class FeedController extends Controller
             $maxBudget = $request->get('max_budget', $request->get('maxBudget'));
             $location = $request->get('location');
 
-            $query = Job::with(['customer', 'category', 'media'])
+            $query = Job::with(['customer:id,full_name,phone,email', 'category:id,name', 'media:id,job_id,media_type,file_path'])
                 ->where('status', 'open')
                 ->where('customer_id', '!=', $user->id); // Exclude own job postings
 
@@ -268,7 +283,7 @@ class FeedController extends Controller
         try {
             $user = Auth::user();
 
-            $job = Job::with(['customer', 'category', 'media'])
+            $job = Job::with(['customer:id,full_name,phone,email', 'category:id,name', 'media:id,job_id,media_type,file_path'])
                 ->where('id', $id)
                 ->where('status', 'open')
                 ->first();
@@ -339,7 +354,31 @@ class FeedController extends Controller
                     // For now, we'll return all fundis
                     return true;
                 })
-                ->take(20); // Limit to 20 nearby fundis
+                ->take(20) // Limit to 20 nearby fundis
+                ->map(function ($fundi) {
+                    // Safe serialization for nearby fundis
+                    return [
+                        'id' => $fundi->id,
+                        'name' => $fundi->name,
+                        'phone' => $fundi->phone,
+                        'email' => $fundi->email,
+                        'fundi_profile' => $fundi->fundiProfile ? [
+                            'id' => $fundi->fundiProfile->id,
+                            'full_name' => $fundi->fundiProfile->full_name,
+                            'bio' => $fundi->fundiProfile->bio,
+                            'skills' => $fundi->fundiProfile->skills,
+                            'experience_years' => $fundi->fundiProfile->experience_years,
+                        ] : null,
+                        'portfolio_items' => $fundi->visiblePortfolio->map(function($item) {
+                            return [
+                                'id' => $item->id,
+                                'title' => $item->title,
+                                'description' => $item->description,
+                                'skills_used' => $item->skills_used,
+                            ];
+                        }),
+                    ];
+                });
 
             return response()->json([
                 'success' => true,

@@ -5,7 +5,7 @@ Base URL:
 https://api.fundiapp.com/v1
 
 Authentication:
-Method: Laravel Sanctum (Token-based)
+Method: JWT Authentication (Token-based)
 
 
 Header:
@@ -44,7 +44,7 @@ Response Example:
   "id": 1,
   "phone": "+255712345678",
   "role": "fundi",
-  "token": "sanctum_token_here"
+  "token": "jwt_token_here"
 }
 
 
@@ -322,7 +322,7 @@ Laravel Log Endpoint Response Example:
 
 
 9. Technical Notes
-Authentication: Laravel Sanctum, role-based access
+Authentication: JWT Authentication, role-based access
 
 
 File Storage: AWS S3 / Firebase Storage with signed URLs

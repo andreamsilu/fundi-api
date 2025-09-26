@@ -5,15 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles;
 
     protected $fillable = [
-        'name',
+        'full_name',
         'phone',
         'email',
         'password',
@@ -24,6 +24,23 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    /**
+     * The guard name for the model.
+     *
+     * @var string
+     */
+    protected $guard_name = 'api';
+
+    /**
+     * The attributes that should be appended to the model's array form.
+     * 
+     * @var array
+     */
+    protected $appends = [
+        // Removed appends to prevent recursion during serialization
+        // Use toApiArray() method instead for safe serialization
     ];
 
     protected function casts(): array
@@ -209,5 +226,89 @@ class User extends Authenticatable
     public function getRoleIds()
     {
         return $this->roles()->pluck('id')->toArray();
+    }
+
+    /**
+     * Get roles data safely without recursion
+     * 
+     * @return array
+     */
+    public function getRolesData()
+    {
+        return $this->roles()->select('id', 'name', 'guard_name')->get()->map(function ($role) {
+            return [
+                'id' => $role->id,
+                'name' => $role->name,
+                'guard_name' => $role->guard_name,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get permissions data safely without recursion
+     * 
+     * @return array
+     */
+    public function getPermissionsData()
+    {
+        return $this->getAllPermissions()->map(function ($permission) {
+            return [
+                'id' => $permission->id,
+                'name' => $permission->name,
+                'guard_name' => $permission->guard_name,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get user data for API responses without recursion
+     * 
+     * @return array
+     */
+    public function toApiArray()
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->full_name,
+            'full_name' => $this->full_name,
+            'phone' => $this->phone,
+            'email' => $this->email,
+            'status' => $this->status,
+            'nida_number' => $this->nida_number,
+            'email_verified_at' => $this->email_verified_at,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+            'roles' => $this->getRolesData(),
+            'permissions' => $this->getPermissionsData(),
+            'role_names' => $this->getRoleNames()->toArray(),
+            'permission_names' => $this->getAllPermissions()->pluck('name')->toArray(),
+            'primary_role' => $this->primary_role,
+            'role_display_name' => $this->role_display_name,
+            'role_description' => $this->role_description,
+        ];
+    }
+
+    /**
+     * Get the identifier that will be stored in the subject claim of the JWT.
+     *
+     * @return mixed
+     */
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    /**
+     * Return a key value array, containing any custom claims to be added to the JWT.
+     *
+     * @return array
+     */
+    public function getJWTCustomClaims()
+    {
+        return [
+            'user_id' => $this->id,
+            'phone' => $this->phone,
+            'roles' => $this->getRoleNames()->toArray(),
+        ];
     }
 }

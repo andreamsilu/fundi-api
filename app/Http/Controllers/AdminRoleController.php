@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Http\Resources\UserResource;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
@@ -17,23 +18,13 @@ class AdminRoleController extends Controller
     public function getUsersWithRoles(Request $request): JsonResponse
     {
         try {
-            $users = User::select('id', 'phone', 'status', 'created_at')
-                ->with('roles')
+            $users = User::select('id', 'name', 'phone', 'email', 'status', 'created_at')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
-            // Transform the data to include role information
+            // Transform the data using UserResource for safe serialization
             $users->getCollection()->transform(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'phone' => $user->phone,
-                    'roles' => $user->getRoleNames()->toArray(),
-                    'primary_role' => $user->getRoleNames()->first() ?? 'customer',
-                    'role_display_name' => $user->getRoleNames()->implode(' + '),
-                    'has_multiple_roles' => $user->getRoleNames()->count() > 1,
-                    'status' => $user->status,
-                    'created_at' => $user->created_at,
-                ];
+                return new UserResource($user);
             });
 
             return response()->json([

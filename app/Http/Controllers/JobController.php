@@ -19,7 +19,7 @@ class JobController extends Controller
     {
         try {
             $user = $request->user();
-            $query = Job::with(['customer', 'category', 'applications', 'media']);
+            $query = Job::with(['customer:id,full_name,phone,email', 'category:id,name', 'applications', 'media']);
 
             // For customers: show only their own jobs
             // For fundis: show all jobs (they can browse and apply)

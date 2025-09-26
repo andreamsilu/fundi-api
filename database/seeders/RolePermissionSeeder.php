@@ -56,7 +56,7 @@ class RolePermissionSeeder extends Seeder
         foreach ($permissions as $permissionName) {
             Permission::firstOrCreate([
                 'name' => $permissionName,
-                'guard_name' => 'web'
+                'guard_name' => 'api'
             ]);
         }
 
@@ -101,7 +101,7 @@ class RolePermissionSeeder extends Seeder
         foreach ($systemRoles as $roleData) {
             $role = Role::firstOrCreate([
                 'name' => $roleData['name'],
-                'guard_name' => 'web'
+                'guard_name' => 'api'
             ]);
 
             // Assign permissions to role
@@ -130,7 +130,7 @@ class RolePermissionSeeder extends Seeder
         foreach ($customRoles as $roleData) {
             $role = Role::firstOrCreate([
                 'name' => $roleData['name'],
-                'guard_name' => 'web'
+                'guard_name' => 'api'
             ]);
 
             // Assign permissions to role

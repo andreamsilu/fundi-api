@@ -723,7 +723,7 @@ Foreign Keys & Constraints: Enforce integrity, prevent orphaned records.
 Unique Constraints: Prevent duplicate users, applications, ratings.
 
 
-Sessions: Token-based authentication via Laravel Sanctum, with expiry.
+Sessions: Token-based authentication via JWT, with expiry.
 
 
 Encrypted Connections: MySQL over TLS, API HTTPS calls.

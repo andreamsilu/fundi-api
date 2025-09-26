@@ -31,7 +31,7 @@ return [
     /*
      * The default guard name for Laravel-permission
      */
-    'guard_name' => 'sanctum',
+    'guard_name' => 'api',
 
     'table_names' => [
 
