@@ -82,12 +82,17 @@ Route::middleware(['auth:api', 'throttle:60,1'])->group(function () {
 
 
     // Job routes (role/payment checks handled in controllers)
+    // Available jobs - public feed for everyone to view
     Route::get('/jobs', [JobController::class, 'index'])->middleware('jwt.permission:view_jobs');
-    // Alias for mobile: returns authenticated user's jobs (customers) or scoped jobs
-    Route::get('/jobs/my-jobs', [JobController::class, 'index'])->middleware('jwt.permission:view_jobs');
+    // User's own jobs - only job owner can manage
+    Route::get('/jobs/my-jobs', [JobController::class, 'myJobs'])->middleware('jwt.permission:view_jobs');
+    // Create new job
     Route::post('/jobs', [JobController::class, 'store'])->middleware('jwt.permission:create_jobs');
+    // View specific job
     Route::get('/jobs/{id}', [JobController::class, 'show'])->middleware('jwt.permission:view_jobs');
+    // Update job - only job owner can update
     Route::patch('/jobs/{id}', [JobController::class, 'update'])->middleware('jwt.permission:edit_jobs');
+    // Delete job - only job owner can delete
     Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->middleware('jwt.permission:delete_jobs');
 
     // Job Application routes

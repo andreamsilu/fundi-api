@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Validator;
 class JobController extends Controller
 {
     /**
-     * List all jobs
+     * List all jobs (available jobs for everyone)
      */
     public function index(Request $request): JsonResponse
     {
@@ -21,12 +21,13 @@ class JobController extends Controller
             $user = $request->user();
             $query = Job::with(['customer:id,full_name,phone,email', 'category:id,name', 'applications', 'media']);
 
-            // For customers: show only their own jobs
-            // For fundis: show all jobs (they can browse and apply)
-            // For admins: show all jobs
-            if ($user->isCustomer()) {
-                $query->where('customer_id', $user->id);
-            }
+            // Show all available jobs (public feed) - no filtering by user
+            // This is the public job feed that everyone can see
+            
+            // Debug logging
+            \Log::info('JobController index - User ID: ' . $user->id);
+            \Log::info('JobController index - Query count before pagination: ' . $query->count());
+            \Log::info('JobController index - Request URL: ' . $request->fullUrl());
 
             // Filter by category
             if ($request->has('category_id')) {
@@ -75,6 +76,75 @@ class JobController extends Controller
                 'success' => false,
                 'message' => 'Failed to retrieve jobs',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving jobs'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get user's own jobs (for job owners to manage their jobs)
+     */
+    public function myJobs(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $query = Job::with(['customer:id,full_name,phone,email', 'category:id,name', 'applications', 'media']);
+
+            // Only show jobs owned by the current user
+            $query->where('customer_id', $user->id);
+            
+            // Debug logging
+            \Log::info('JobController myJobs - User ID: ' . $user->id);
+            \Log::info('JobController myJobs - Query count before pagination: ' . $query->count());
+            \Log::info('JobController myJobs - Request URL: ' . $request->fullUrl());
+
+            // Filter by category
+            if ($request->has('category_id')) {
+                $query->where('category_id', $request->category_id);
+            }
+
+            // Filter by status
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Filter by location (within radius)
+            if ($request->has('lat') && $request->has('lng') && $request->has('radius')) {
+                $lat = $request->lat;
+                $lng = $request->lng;
+                $radius = $request->radius; // in kilometers
+
+                $query->whereRaw("
+                    (6371 * acos(cos(radians(?)) 
+                    * cos(radians(location_lat)) 
+                    * cos(radians(location_lng) - radians(?)) 
+                    + sin(radians(?)) 
+                    * sin(radians(location_lat)))) <= ?",
+                    [$lat, $lng, $lat, $radius]
+                );
+            }
+
+            $paginator = $query->orderBy('created_at', 'desc')->paginate(15);
+
+            // Shape response to match mobile expectations
+            return response()->json([
+                'success' => true,
+                'message' => 'My jobs retrieved successfully',
+                'data' => [
+                    'jobs' => $paginator->items(),
+                    'pagination' => [
+                        'current_page' => $paginator->currentPage(),
+                        'last_page' => $paginator->lastPage(),
+                        'per_page' => $paginator->perPage(),
+                        'total' => $paginator->total(),
+                    ],
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve my jobs',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving my jobs'
             ], 500);
         }
     }
