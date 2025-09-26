@@ -130,8 +130,8 @@ class FeedController extends Controller
             $location = $request->get('location');
 
             $query = Job::with(['customer:id,full_name,phone,email', 'category:id,name', 'media:id,job_id,media_type,file_path'])
-                ->where('status', 'open')
-                ->where('customer_id', '!=', $user->id); // Exclude own job postings
+                ->where('status', 'open');
+                // Show all available jobs - no user filtering for public feed
 
             // Apply search filter
             if ($search) {
