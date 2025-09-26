@@ -24,9 +24,9 @@ use App\Http\Controllers\NotificationController;
 */
 
 // Public routes (no authentication required)
-Route::post('/auth/login', [AuthController::class, 'login']);
-Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+Route::post('/auth/login', [JWTAuthController::class, 'login']);
+Route::post('/auth/register', [JWTAuthController::class, 'register']);
+Route::post('/auth/refresh', [JWTAuthController::class, 'refresh']);
 
 // Protected routes (require JWT authentication)
 Route::middleware('jwt.auth')->group(function () {
