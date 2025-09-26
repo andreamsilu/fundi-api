@@ -107,9 +107,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     // Feed routes (role-checked inside controller, no extra permission required)
     Route::get('/feeds/fundis', [FeedController::class, 'getFundiFeed'])->middleware('permission:view_fundis');
-    Route::get('/feeds/jobs', [FeedController::class, 'getJobFeed'])->middleware('permission:view_job_feeds');
+    Route::get('/feeds/jobs', [FeedController::class, 'getJobFeed']);
     Route::get('/feeds/fundis/{id}', [FeedController::class, 'getFundiProfile'])->middleware('permission:view_fundis');
-    Route::get('/feeds/jobs/{id}', [FeedController::class, 'getJobDetails'])->middleware('permission:view_job_feeds');
+    Route::get('/feeds/jobs/{id}', [FeedController::class, 'getJobDetails'])->middleware('sanctum.permission:view_job_feeds');
     Route::get('/feeds/nearby-fundis', [FeedController::class, 'getNearbyFundis'])->middleware('permission:view_fundis');
 
     // Work Approval routes
