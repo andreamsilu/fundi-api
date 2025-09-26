@@ -92,11 +92,19 @@ class User extends Authenticatable implements JWTSubject
 
     public function portfolio()
     {
+        // Only fundi users can have portfolios
+        if (!$this->isFundi()) {
+            return $this->hasMany(Portfolio::class, 'fundi_id')->whereRaw('1 = 0'); // Empty result
+        }
         return $this->hasMany(Portfolio::class, 'fundi_id');
     }
 
     public function visiblePortfolio()
     {
+        // Only fundi users can have visible portfolios
+        if (!$this->isFundi()) {
+            return $this->hasMany(Portfolio::class, 'fundi_id')->whereRaw('1 = 0'); // Empty result
+        }
         return $this->hasMany(Portfolio::class, 'fundi_id')->where('is_visible', true);
     }
 
@@ -164,11 +172,19 @@ class User extends Authenticatable implements JWTSubject
 
     public function getPortfolioCount(): int
     {
+        // Only fundi users can have portfolios
+        if (!$this->isFundi()) {
+            return 0;
+        }
         return $this->portfolio()->count();
     }
 
     public function getVisiblePortfolioCount(): int
     {
+        // Only fundi users can have visible portfolios
+        if (!$this->isFundi()) {
+            return 0;
+        }
         return $this->visiblePortfolio()->count();
     }
 
