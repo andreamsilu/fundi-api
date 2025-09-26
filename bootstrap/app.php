@@ -20,9 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->alias([
                 'auth' => \App\Http\Middleware\Authenticate::class,
                 'auth.sanctum' => \App\Http\Middleware\SanctumAuth::class,
-                'custom.auth' => \App\Http\Middleware\CustomAuth::class,
-                'role' => \App\Http\Middleware\RoleMiddleware::class,
-                'permission' => \App\Http\Middleware\PermissionMiddleware::class,
+                'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+                'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+                'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             ]);
         })
     ->withExceptions(function (Exceptions $exceptions): void {

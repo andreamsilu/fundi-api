@@ -60,37 +60,37 @@ Route::get('/categories', [CategoryController::class, 'index']);
 
 // Protected routes (authentication required)
 // Apply general rate limiting for authenticated API usage
-Route::middleware(['custom.auth', 'throttle:60,1'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Authentication routes
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::get('/auth/me', [AuthController::class, 'me']);
-    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('permission:view_users');
+    Route::get('/auth/me', [AuthController::class, 'me'])->middleware('permission:view_users');
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->middleware('permission:edit_users');
 
     // User routes
-    Route::get('/users/me', [UserController::class, 'me']);
-    Route::patch('/users/me/profile', [UserController::class, 'updateProfile']);
-    Route::patch('/users/me/fundi-profile', [UserController::class, 'updateFundiProfile']);
-    Route::get('/users/fundi/{fundiId}', [UserController::class, 'getFundiProfile']);
+    Route::get('/users/me', [UserController::class, 'me'])->middleware('permission:view_users');
+    Route::patch('/users/me/profile', [UserController::class, 'updateProfile'])->middleware('permission:edit_users');
+    Route::patch('/users/me/fundi-profile', [UserController::class, 'updateFundiProfile'])->middleware('permission:edit_users');
+    Route::get('/users/fundi/{fundiId}', [UserController::class, 'getFundiProfile'])->middleware('permission:view_fundis');
 
     // Fundi Application routes
-    Route::get('/fundi-applications/requirements', [FundiApplicationController::class, 'getRequirements']);
-    Route::get('/fundi-applications/progress', [FundiApplicationController::class, 'getProgress']);
-    Route::get('/fundi-applications/sections/{sectionName}', [FundiApplicationController::class, 'getSection']);
-    Route::post('/fundi-applications/sections', [FundiApplicationController::class, 'submitSection']);
-    Route::post('/fundi-applications/submit', [FundiApplicationController::class, 'submitFinalApplication']);
-    Route::post('/fundi-applications', [FundiApplicationController::class, 'store']);
-    Route::get('/fundi-applications/status', [FundiApplicationController::class, 'getStatus']);
-    Route::delete('/fundi-applications/{id}', [FundiApplicationController::class, 'destroy']);
+    Route::get('/fundi-applications/requirements', [FundiApplicationController::class, 'getRequirements'])->middleware('permission:view_fundis');
+    Route::get('/fundi-applications/progress', [FundiApplicationController::class, 'getProgress'])->middleware('permission:view_fundis');
+    Route::get('/fundi-applications/sections/{sectionName}', [FundiApplicationController::class, 'getSection'])->middleware('permission:view_fundis');
+    Route::post('/fundi-applications/sections', [FundiApplicationController::class, 'submitSection'])->middleware('permission:manage_fundis');
+    Route::post('/fundi-applications/submit', [FundiApplicationController::class, 'submitFinalApplication'])->middleware('permission:manage_fundis');
+    Route::post('/fundi-applications', [FundiApplicationController::class, 'store'])->middleware('permission:manage_fundis');
+    Route::get('/fundi-applications/status', [FundiApplicationController::class, 'getStatus'])->middleware('permission:view_fundis');
+    Route::delete('/fundi-applications/{id}', [FundiApplicationController::class, 'destroy'])->middleware('permission:manage_fundis');
 
 
     // Job routes (role/payment checks handled in controllers)
-    Route::get('/jobs', [JobController::class, 'index']);
+    Route::get('/jobs', [JobController::class, 'index'])->middleware('permission:view_jobs');
     // Alias for mobile: returns authenticated user's jobs (customers) or scoped jobs
-    Route::get('/jobs/my-jobs', [JobController::class, 'index']);
-    Route::post('/jobs', [JobController::class, 'store']);
-    Route::get('/jobs/{id}', [JobController::class, 'show']);
-    Route::patch('/jobs/{id}', [JobController::class, 'update']);
-    Route::delete('/jobs/{id}', [JobController::class, 'destroy']);
+    Route::get('/jobs/my-jobs', [JobController::class, 'index'])->middleware('permission:view_jobs');
+    Route::post('/jobs', [JobController::class, 'store'])->middleware('permission:create_jobs');
+    Route::get('/jobs/{id}', [JobController::class, 'show'])->middleware('permission:view_jobs');
+    Route::patch('/jobs/{id}', [JobController::class, 'update'])->middleware('permission:edit_jobs');
+    Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->middleware('permission:delete_jobs');
 
     // Job Application routes
     Route::post('/jobs/{jobId}/apply', [JobApplicationController::class, 'apply'])->middleware('permission:apply_jobs');
@@ -106,11 +106,11 @@ Route::middleware(['custom.auth', 'throttle:60,1'])->group(function () {
     Route::delete('/portfolio/{id}', [PortfolioController::class, 'destroy'])->middleware('permission:delete_portfolio');
 
     // Feed routes (role-checked inside controller, no extra permission required)
-    Route::get('/feeds/fundis', [FeedController::class, 'getFundiFeed']);
-    Route::get('/feeds/jobs', [FeedController::class, 'getJobFeed']);
-    Route::get('/feeds/fundis/{id}', [FeedController::class, 'getFundiProfile']);
-    Route::get('/feeds/jobs/{id}', [FeedController::class, 'getJobDetails']);
-    Route::get('/feeds/nearby-fundis', [FeedController::class, 'getNearbyFundis']);
+    Route::get('/feeds/fundis', [FeedController::class, 'getFundiFeed'])->middleware('permission:view_fundis');
+    Route::get('/feeds/jobs', [FeedController::class, 'getJobFeed'])->middleware('permission:view_job_feeds');
+    Route::get('/feeds/fundis/{id}', [FeedController::class, 'getFundiProfile'])->middleware('permission:view_fundis');
+    Route::get('/feeds/jobs/{id}', [FeedController::class, 'getJobDetails'])->middleware('permission:view_job_feeds');
+    Route::get('/feeds/nearby-fundis', [FeedController::class, 'getNearbyFundis'])->middleware('permission:view_fundis');
 
     // Work Approval routes
     Route::get('/work-approval/portfolio-pending', [WorkApprovalController::class, 'getPendingPortfolioItems'])->middleware('permission:view_work_submissions');
@@ -121,44 +121,44 @@ Route::middleware(['custom.auth', 'throttle:60,1'])->group(function () {
     Route::post('/work-approval/submissions/{id}/reject', [WorkApprovalController::class, 'rejectWorkSubmission'])->middleware('permission:reject_work');
 
     // Payment routes
-    Route::get('/payments/current-plan', [PaymentController::class, 'getCurrentPlan']);
-    Route::get('/payments/plans', [PaymentController::class, 'getAvailablePlans']);
-    Route::post('/payments/subscribe', [PaymentController::class, 'subscribe']);
-    Route::post('/payments/cancel-subscription', [PaymentController::class, 'cancelSubscription']);
-    Route::get('/payments/history', [PaymentController::class, 'getPaymentHistory']);
+    Route::get('/payments/current-plan', [PaymentController::class, 'getCurrentPlan'])->middleware('permission:view_payments');
+    Route::get('/payments/plans', [PaymentController::class, 'getAvailablePlans'])->middleware('permission:view_payments');
+    Route::post('/payments/subscribe', [PaymentController::class, 'subscribe'])->middleware('permission:process_payments');
+    Route::post('/payments/cancel-subscription', [PaymentController::class, 'cancelSubscription'])->middleware('permission:process_payments');
+    Route::get('/payments/history', [PaymentController::class, 'getPaymentHistory'])->middleware('permission:view_payments');
     // Alias for mobile expecting /payments/user
-    Route::get('/payments/user', [PaymentController::class, 'getPaymentHistory']);
-    Route::post('/payments/check-permission', [PaymentController::class, 'checkActionPermission']);
-    Route::post('/payments/pay-per-use', [PaymentController::class, 'processPayPerUse']);
+    Route::get('/payments/user', [PaymentController::class, 'getPaymentHistory'])->middleware('permission:view_payments');
+    Route::post('/payments/check-permission', [PaymentController::class, 'checkActionPermission'])->middleware('permission:view_payments');
+    Route::post('/payments/pay-per-use', [PaymentController::class, 'processPayPerUse'])->middleware('permission:process_payments');
 
     // Notification routes
-    Route::get('/notifications', [NotificationController::class, 'index']);
-    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
-    Route::delete('/notifications/{id}', [NotificationController::class, 'delete']);
-    Route::delete('/notifications/clear-all', [NotificationController::class, 'clearAll']);
-    Route::get('/notifications/settings', [NotificationController::class, 'getSettings']);
-    Route::put('/notifications/settings', [NotificationController::class, 'updateSettings']);
-    Route::post('/notifications/test', [NotificationController::class, 'sendTest']);
+    Route::get('/notifications', [NotificationController::class, 'index'])->middleware('permission:view_notifications');
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->middleware('permission:view_notifications');
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->middleware('permission:view_notifications');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'delete'])->middleware('permission:delete_notifications');
+    Route::delete('/notifications/clear-all', [NotificationController::class, 'clearAll'])->middleware('permission:delete_notifications');
+    Route::get('/notifications/settings', [NotificationController::class, 'getSettings'])->middleware('permission:view_notifications');
+    Route::put('/notifications/settings', [NotificationController::class, 'updateSettings'])->middleware('permission:manage_notifications');
+    Route::post('/notifications/test', [NotificationController::class, 'sendTest'])->middleware('permission:send_notifications');
 
     // Rating routes
-    Route::post('/ratings', [RatingController::class, 'store']);
-    Route::get('/ratings/fundi/{fundiId}', [RatingController::class, 'getFundiRatings']);
-    Route::get('/ratings/my-ratings', [RatingController::class, 'getMyRatings']);
-    Route::put('/ratings/{id}', [RatingController::class, 'update']);
-    Route::delete('/ratings/{id}', [RatingController::class, 'delete']);
+    Route::post('/ratings', [RatingController::class, 'store'])->middleware('permission:create_ratings');
+    Route::get('/ratings/fundi/{fundiId}', [RatingController::class, 'getFundiRatings'])->middleware('permission:view_ratings');
+    Route::get('/ratings/my-ratings', [RatingController::class, 'getMyRatings'])->middleware('permission:view_ratings');
+    Route::put('/ratings/{id}', [RatingController::class, 'update'])->middleware('permission:edit_ratings');
+    Route::delete('/ratings/{id}', [RatingController::class, 'delete'])->middleware('permission:delete_ratings');
 
     // Settings routes
-    Route::get('/settings', [SettingsController::class, 'index']);
-    Route::put('/settings', [SettingsController::class, 'update']);
-    Route::patch('/settings/{key}', [SettingsController::class, 'updateKey']);
-    Route::post('/settings/reset', [SettingsController::class, 'reset']);
-    Route::get('/settings/export', [SettingsController::class, 'export']);
-    Route::post('/settings/import', [SettingsController::class, 'import']);
-    Route::get('/settings/themes', [SettingsController::class, 'getThemes']);
-    Route::get('/settings/languages', [SettingsController::class, 'getLanguages']);
-    Route::put('/settings/privacy', [SettingsController::class, 'updatePrivacy']);
-    Route::put('/settings/notifications', [SettingsController::class, 'updateNotificationSettings']);
+    Route::get('/settings', [SettingsController::class, 'index'])->middleware('permission:view_system_settings');
+    Route::put('/settings', [SettingsController::class, 'update'])->middleware('permission:manage_system_settings');
+    Route::patch('/settings/{key}', [SettingsController::class, 'updateKey'])->middleware('permission:manage_system_settings');
+    Route::post('/settings/reset', [SettingsController::class, 'reset'])->middleware('permission:manage_system_settings');
+    Route::get('/settings/export', [SettingsController::class, 'export'])->middleware('permission:view_system_settings');
+    Route::post('/settings/import', [SettingsController::class, 'import'])->middleware('permission:manage_system_settings');
+    Route::get('/settings/themes', [SettingsController::class, 'getThemes'])->middleware('permission:view_system_settings');
+    Route::get('/settings/languages', [SettingsController::class, 'getLanguages'])->middleware('permission:view_system_settings');
+    Route::put('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->middleware('permission:manage_system_settings');
+    Route::put('/settings/notifications', [SettingsController::class, 'updateNotificationSettings'])->middleware('permission:manage_system_settings');
 
     // Dashboard routes removed (not required for mobile)
 

@@ -19,14 +19,6 @@ class FeedController extends Controller
     {
         try {
             $user = Auth::user();
-            
-            // Allow customers, fundis, and admins to view fundi feed
-            if (!$user->isCustomer() && !$user->isFundi() && !$user->isAdmin()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only customers, fundis, and admins can view fundi feed'
-                ], 403);
-            }
 
             // Normalize query parameters (support both snake_case and camelCase used by mobile)
             $perPage = $request->get('per_page', $request->get('limit', 15));
@@ -113,14 +105,6 @@ class FeedController extends Controller
     {
         try {
             $user = Auth::user();
-            
-            // Allow fundis, customers, and admins to view job feed
-            if (!$user->isFundi() && !$user->isCustomer() && !$user->isAdmin()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only fundis, customers, and admins can view job feed'
-                ], 403);
-            }
 
             $perPage = $request->get('per_page', $request->get('limit', 15));
             $page = $request->get('page', 1);
@@ -194,14 +178,6 @@ class FeedController extends Controller
     {
         try {
             $user = Auth::user();
-            
-            // Allow customers, fundis, and admins to view fundi profiles
-            if (!$user->isCustomer() && !$user->isFundi() && !$user->isAdmin()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only customers, fundis, and admins can view fundi profiles'
-                ], 403);
-            }
 
             $fundi = User::with(['visiblePortfolio.media', 'fundiProfile', 'ratingsReceived'])
                 ->where('id', $id)
@@ -291,14 +267,6 @@ class FeedController extends Controller
     {
         try {
             $user = Auth::user();
-            
-            // Allow fundis, customers, and admins to view job details
-            if (!$user->isFundi() && !$user->isCustomer() && !$user->isAdmin()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only fundis, customers, and admins can view job details'
-                ], 403);
-            }
 
             $job = Job::with(['customer', 'category', 'media'])
                 ->where('id', $id)
@@ -340,14 +308,6 @@ class FeedController extends Controller
     {
         try {
             $user = Auth::user();
-            
-            // Allow customers, fundis, and admins to view nearby fundis
-            if (!$user->isCustomer() && !$user->isFundi() && !$user->isAdmin()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only customers, fundis, and admins can view nearby fundis'
-                ], 403);
-            }
 
             $validator = \Validator::make($request->all(), [
                 'latitude' => 'required|numeric|between:-90,90',
