@@ -82,4 +82,7 @@ Route::middleware('jwt.auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->middleware('jwt.permission:view_notifications');
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->middleware('jwt.permission:manage_notifications');
     Route::delete('/notifications/{id}', [NotificationController::class, 'delete'])->middleware('jwt.permission:manage_notifications');
+    
+    // Search suggestions route
+    Route::get('/search/suggestions', [FeedController::class, 'getSearchSuggestions']);
 });

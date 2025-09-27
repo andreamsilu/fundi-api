@@ -393,4 +393,109 @@ class FeedController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get search suggestions for autocomplete
+     */
+    public function getSearchSuggestions(Request $request): JsonResponse
+    {
+        try {
+            $query = $request->get('q', '');
+            $type = $request->get('type', 'fundi');
+            $limit = $request->get('limit', 8);
+
+            if (strlen($query) < 2) {
+                return response()->json([
+                    'success' => true,
+                    'suggestions' => []
+                ]);
+            }
+
+            $suggestions = [];
+
+            if ($type === 'fundi') {
+                // Get fundi name suggestions
+                $fundiNames = User::where('role', 'fundi')
+                    ->where('full_name', 'LIKE', "%{$query}%")
+                    ->limit($limit)
+                    ->pluck('full_name')
+                    ->map(function ($name) {
+                        return ['text' => $name, 'type' => 'fundi_name'];
+                    });
+
+                $suggestions = array_merge($suggestions, $fundiNames->toArray());
+
+                // Get skill suggestions
+                $skills = DB::table('user_skills')
+                    ->join('skills', 'user_skills.skill_id', '=', 'skills.id')
+                    ->where('skills.name', 'LIKE', "%{$query}%")
+                    ->distinct()
+                    ->limit($limit)
+                    ->pluck('skills.name')
+                    ->map(function ($skill) {
+                        return ['text' => $skill, 'type' => 'skill'];
+                    });
+
+                $suggestions = array_merge($suggestions, $skills->toArray());
+
+                // Get location suggestions
+                $locations = User::where('role', 'fundi')
+                    ->where('location', 'LIKE', "%{$query}%")
+                    ->distinct()
+                    ->limit($limit)
+                    ->pluck('location')
+                    ->map(function ($location) {
+                        return ['text' => $location, 'type' => 'location'];
+                    });
+
+                $suggestions = array_merge($suggestions, $locations->toArray());
+            } elseif ($type === 'job') {
+                // Get job title suggestions
+                $jobTitles = Job::where('title', 'LIKE', "%{$query}%")
+                    ->limit($limit)
+                    ->pluck('title')
+                    ->map(function ($title) {
+                        return ['text' => $title, 'type' => 'job_title'];
+                    });
+
+                $suggestions = array_merge($suggestions, $jobTitles->toArray());
+
+                // Get job category suggestions
+                $categories = Job::join('categories', 'jobs.category_id', '=', 'categories.id')
+                    ->where('categories.name', 'LIKE', "%{$query}%")
+                    ->distinct()
+                    ->limit($limit)
+                    ->pluck('categories.name')
+                    ->map(function ($category) {
+                        return ['text' => $category, 'type' => 'category'];
+                    });
+
+                $suggestions = array_merge($suggestions, $categories->toArray());
+            }
+
+            // Remove duplicates and limit results
+            $uniqueSuggestions = [];
+            $seen = [];
+            foreach ($suggestions as $suggestion) {
+                if (!in_array($suggestion['text'], $seen)) {
+                    $uniqueSuggestions[] = $suggestion;
+                    $seen[] = $suggestion['text'];
+                    if (count($uniqueSuggestions) >= $limit) {
+                        break;
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'suggestions' => $uniqueSuggestions
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get search suggestions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
