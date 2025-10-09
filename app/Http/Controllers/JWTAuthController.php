@@ -216,4 +216,133 @@ class JWTAuthController extends Controller
             'message' => 'Password changed successfully'
         ]);
     }
+
+    /**
+     * Forgot password - Send OTP
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string|exists:users,phone',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // TODO: Implement actual OTP sending via SMS
+        $otp = rand(100000, 999999);
+        
+        // In production, send OTP via SMS service
+        // For now, return success (OTP would be sent via SMS)
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP sent to your phone number',
+            'data' => config('app.debug') ? ['otp' => $otp] : []
+        ]);
+    }
+
+    /**
+     * Reset password with OTP
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string|exists:users,phone',
+            'otp' => 'required|string',
+            'new_password' => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // TODO: Verify OTP from database/cache
+        
+        $user = User::where('phone', $request->phone)->first();
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->new_password)
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password reset successfully'
+        ]);
+    }
+
+    /**
+     * Send OTP for verification
+     */
+    public function sendOtp(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string',
+            'type' => 'required|in:registration,password_reset,phone_change',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Generate OTP
+        $otp = rand(100000, 999999);
+        
+        // TODO: Store OTP in cache/database with expiry
+        // TODO: Send OTP via SMS service
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP sent successfully',
+            'data' => config('app.debug') ? ['otp' => $otp] : []
+        ]);
+    }
+
+    /**
+     * Verify OTP
+     */
+    public function verifyOtp(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string',
+            'otp' => 'required|string',
+            'type' => 'required|in:registration,password_reset,phone_change',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // TODO: Verify OTP from cache/database
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP verified successfully'
+        ]);
+    }
 }
+

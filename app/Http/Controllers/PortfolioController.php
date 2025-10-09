@@ -300,4 +300,132 @@ class PortfolioController extends Controller
             'message' => 'This endpoint is deprecated. Use POST /api/v1/upload/portfolio-media instead'
         ], 410);
     }
+
+    /**
+     * Get all portfolio items (admin only)
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        try {
+            $query = Portfolio::with(['fundi', 'media']);
+
+            // Filter by status
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Filter by fundi
+            if ($request->has('fundi_id')) {
+                $query->where('fundi_id', $request->fundi_id);
+            }
+
+            // Search
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $perPage = $request->get('per_page', 15);
+            $portfolios = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Portfolio items retrieved successfully',
+                'data' => $portfolios->items(),
+                'pagination' => [
+                    'current_page' => $portfolios->currentPage(),
+                    'per_page' => $portfolios->perPage(),
+                    'total' => $portfolios->total(),
+                    'last_page' => $portfolios->lastPage(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve portfolio items',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update portfolio item (admin)
+     */
+    public function adminUpdate(Request $request, $id): JsonResponse
+    {
+        try {
+            $portfolio = Portfolio::find($id);
+
+            if (!$portfolio) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portfolio item not found'
+                ], 404);
+            }
+
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'status' => 'sometimes|in:pending,approved,rejected',
+                'is_visible' => 'sometimes|boolean',
+                'rejection_reason' => 'sometimes|string|max:500',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $portfolio->update($request->only(['status', 'is_visible', 'rejection_reason']));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Portfolio item updated successfully',
+                'data' => $portfolio->fresh(['fundi', 'media'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update portfolio item',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete portfolio item (admin)
+     */
+    public function adminDestroy($id): JsonResponse
+    {
+        try {
+            $portfolio = Portfolio::find($id);
+
+            if (!$portfolio) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portfolio item not found'
+                ], 404);
+            }
+
+            $portfolio->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Portfolio item deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete portfolio item',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
 }

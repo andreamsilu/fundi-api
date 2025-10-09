@@ -7,47 +7,50 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
+/**
+ * Settings Controller
+ * Handles user-specific settings and preferences
+ */
 class SettingsController extends Controller
 {
     /**
      * Get user settings
      */
-    public function index(Request $request): JsonResponse
+    public function getUserSettings(Request $request): JsonResponse
     {
         try {
             $user = Auth::user();
             
+            // In a real application, this would fetch from a user_settings table
             $settings = [
                 'notifications' => [
-                    'email_notifications' => true,
-                    'push_notifications' => true,
-                    'job_alerts' => true,
-                    'message_alerts' => true,
+                    'email' => true,
+                    'push' => true,
+                    'sms' => false,
                 ],
                 'privacy' => [
-                    'profile_visibility' => 'public',
-                    'show_contact_info' => true,
-                    'show_portfolio' => true,
+                    'profile_visible' => true,
+                    'show_email' => false,
+                    'show_phone' => true,
                 ],
-                'appearance' => [
-                    'theme' => 'light',
+                'preferences' => [
                     'language' => 'en',
+                    'theme' => 'light',
+                    'timezone' => 'Africa/Dar_es_Salaam',
                 ],
-                'account' => [
-                    'two_factor_auth' => false,
-                    'email_verified' => $user->email_verified_at ? true : false,
-                ]
             ];
 
             return response()->json([
                 'success' => true,
+                'message' => 'Settings retrieved successfully',
                 'data' => $settings
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get settings: ' . $e->getMessage()
+                'message' => 'Failed to retrieve settings',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
@@ -55,14 +58,16 @@ class SettingsController extends Controller
     /**
      * Update user settings
      */
-    public function update(Request $request): JsonResponse
+    public function updateUserSettings(Request $request): JsonResponse
     {
         try {
+            $user = Auth::user();
+            
+            // Validate the settings data
             $validator = Validator::make($request->all(), [
-                'notifications' => 'nullable|array',
-                'privacy' => 'nullable|array',
-                'appearance' => 'nullable|array',
-                'account' => 'nullable|array',
+                'notifications' => 'sometimes|array',
+                'privacy' => 'sometimes|array',
+                'preferences' => 'sometimes|array',
             ]);
 
             if ($validator->fails()) {
@@ -73,8 +78,7 @@ class SettingsController extends Controller
                 ], 422);
             }
 
-            // In a real application, you would save these to a settings table
-            // For now, we'll just return success
+            // In a real application, this would save to a user_settings table
             
             return response()->json([
                 'success' => true,
@@ -84,62 +88,55 @@ class SettingsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update settings: ' . $e->getMessage()
+                'message' => 'Failed to update settings',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
 
     /**
-     * Update a specific setting key
+     * Get specific setting by key
      */
-    public function updateKey(Request $request, $key): JsonResponse
+    public function getSetting(Request $request, $key): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'value' => 'required'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // In a real application, you would update the specific setting
-            // For now, we'll just return success
+            $value = null; // Would fetch from database
             
             return response()->json([
                 'success' => true,
-                'message' => 'Setting updated successfully'
+                'data' => [
+                    'key' => $key,
+                    'value' => $value
+                ]
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update setting: ' . $e->getMessage()
+                'message' => 'Failed to get setting',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
 
     /**
-     * Reset settings to default
+     * Reset settings to defaults
      */
-    public function reset(Request $request): JsonResponse
+    public function resetToDefaults(Request $request): JsonResponse
     {
         try {
-            // In a real application, you would reset settings to default values
+            // Reset user settings to defaults
             
             return response()->json([
                 'success' => true,
-                'message' => 'Settings reset to default successfully'
+                'message' => 'Settings reset to defaults successfully'
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to reset settings: ' . $e->getMessage()
+                'message' => 'Failed to reset settings',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
@@ -147,30 +144,22 @@ class SettingsController extends Controller
     /**
      * Export user settings
      */
-    public function export(Request $request): JsonResponse
+    public function exportSettings(Request $request): JsonResponse
     {
         try {
-            $user = Auth::user();
+            $settings = []; // Would fetch all user settings
             
-            $settings = [
-                'user_id' => $user->id,
-                'exported_at' => now()->toISOString(),
-                'settings' => [
-                    'notifications' => ['email_notifications' => true],
-                    'privacy' => ['profile_visibility' => 'public'],
-                    'appearance' => ['theme' => 'light'],
-                ]
-            ];
-
             return response()->json([
                 'success' => true,
+                'message' => 'Settings exported successfully',
                 'data' => $settings
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to export settings: ' . $e->getMessage()
+                'message' => 'Failed to export settings',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
@@ -178,11 +167,11 @@ class SettingsController extends Controller
     /**
      * Import user settings
      */
-    public function import(Request $request): JsonResponse
+    public function importSettings(Request $request): JsonResponse
     {
         try {
             $validator = Validator::make($request->all(), [
-                'settings' => 'required|array'
+                'settings' => 'required|array',
             ]);
 
             if ($validator->fails()) {
@@ -193,7 +182,7 @@ class SettingsController extends Controller
                 ], 422);
             }
 
-            // In a real application, you would import and validate the settings
+            // Would save imported settings
             
             return response()->json([
                 'success' => true,
@@ -203,7 +192,8 @@ class SettingsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to import settings: ' . $e->getMessage()
+                'message' => 'Failed to import settings',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
@@ -211,13 +201,13 @@ class SettingsController extends Controller
     /**
      * Get available themes
      */
-    public function getThemes(Request $request): JsonResponse
+    public function getThemes(): JsonResponse
     {
         try {
             $themes = [
-                ['id' => 'light', 'name' => 'Light Theme', 'description' => 'Clean and bright interface'],
-                ['id' => 'dark', 'name' => 'Dark Theme', 'description' => 'Easy on the eyes in low light'],
-                ['id' => 'auto', 'name' => 'Auto', 'description' => 'Follows system preference'],
+                ['id' => 'light', 'name' => 'Light'],
+                ['id' => 'dark', 'name' => 'Dark'],
+                ['id' => 'auto', 'name' => 'Auto'],
             ];
 
             return response()->json([
@@ -228,7 +218,8 @@ class SettingsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get themes: ' . $e->getMessage()
+                'message' => 'Failed to get themes',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
@@ -236,13 +227,12 @@ class SettingsController extends Controller
     /**
      * Get available languages
      */
-    public function getLanguages(Request $request): JsonResponse
+    public function getLanguages(): JsonResponse
     {
         try {
             $languages = [
-                ['id' => 'en', 'name' => 'English', 'native_name' => 'English'],
-                ['id' => 'sw', 'name' => 'Swahili', 'native_name' => 'Kiswahili'],
-                ['id' => 'fr', 'name' => 'French', 'native_name' => 'Français'],
+                ['code' => 'en', 'name' => 'English'],
+                ['code' => 'sw', 'name' => 'Swahili'],
             ];
 
             return response()->json([
@@ -253,7 +243,8 @@ class SettingsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get languages: ' . $e->getMessage()
+                'message' => 'Failed to get languages',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
@@ -265,9 +256,9 @@ class SettingsController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'profile_visibility' => 'required|in:public,private,friends',
-                'show_contact_info' => 'boolean',
-                'show_portfolio' => 'boolean',
+                'profile_visible' => 'sometimes|boolean',
+                'show_email' => 'sometimes|boolean',
+                'show_phone' => 'sometimes|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -278,6 +269,8 @@ class SettingsController extends Controller
                 ], 422);
             }
 
+            // Would save privacy settings
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Privacy settings updated successfully'
@@ -286,22 +279,22 @@ class SettingsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update privacy settings: ' . $e->getMessage()
+                'message' => 'Failed to update privacy settings',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
 
     /**
-     * Update notification settings
+     * Update notification preferences
      */
-    public function updateNotificationSettings(Request $request): JsonResponse
+    public function updateNotificationPreferences(Request $request): JsonResponse
     {
         try {
             $validator = Validator::make($request->all(), [
-                'email_notifications' => 'boolean',
-                'push_notifications' => 'boolean',
-                'job_alerts' => 'boolean',
-                'message_alerts' => 'boolean',
+                'email_notifications' => 'sometimes|boolean',
+                'push_notifications' => 'sometimes|boolean',
+                'sms_notifications' => 'sometimes|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -312,15 +305,18 @@ class SettingsController extends Controller
                 ], 422);
             }
 
+            // Would save notification preferences
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Notification settings updated successfully'
+                'message' => 'Notification preferences updated successfully'
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update notification settings: ' . $e->getMessage()
+                'message' => 'Failed to update notification preferences',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }

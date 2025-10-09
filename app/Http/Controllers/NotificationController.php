@@ -224,7 +224,7 @@ class NotificationController extends Controller
     /**
      * Send test notification
      */
-    public function sendTest(Request $request): JsonResponse
+    public function sendTestNotification(Request $request): JsonResponse
     {
         try {
             $user = $request->user();
@@ -249,6 +249,199 @@ class NotificationController extends Controller
                 'success' => false,
                 'message' => 'Failed to send test notification',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while sending test notification'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all notifications (admin only)
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        try {
+            $query = Notification::with('user');
+
+            // Filter by user
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            // Filter by type
+            if ($request->has('type')) {
+                $query->where('type', $request->type);
+            }
+
+            // Filter by read status
+            if ($request->has('read_status')) {
+                $query->where('read_status', $request->read_status);
+            }
+
+            $perPage = $request->get('per_page', 15);
+            $notifications = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notifications retrieved successfully',
+                'data' => $notifications->items(),
+                'pagination' => [
+                    'current_page' => $notifications->currentPage(),
+                    'per_page' => $notifications->perPage(),
+                    'total' => $notifications->total(),
+                    'last_page' => $notifications->lastPage(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve notifications',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Send notification to user(s) (admin only)
+     */
+    public function sendNotification(Request $request): JsonResponse
+    {
+        try {
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'user_id' => 'sometimes|exists:users,id',
+                'user_ids' => 'sometimes|array',
+                'user_ids.*' => 'exists:users,id',
+                'broadcast' => 'sometimes|boolean',
+                'title' => 'required|string|max:200',
+                'message' => 'required|string|max:1000',
+                'type' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $notifications = [];
+
+            // Send to specific user
+            if ($request->has('user_id')) {
+                $notification = Notification::create([
+                    'user_id' => $request->user_id,
+                    'title' => $request->title,
+                    'message' => $request->message,
+                    'type' => $request->type,
+                    'read_status' => false,
+                ]);
+                $notifications[] = $notification;
+            }
+            // Send to multiple users
+            elseif ($request->has('user_ids')) {
+                foreach ($request->user_ids as $userId) {
+                    $notification = Notification::create([
+                        'user_id' => $userId,
+                        'title' => $request->title,
+                        'message' => $request->message,
+                        'type' => $request->type,
+                        'read_status' => false,
+                    ]);
+                    $notifications[] = $notification;
+                }
+            }
+            // Broadcast to all users
+            elseif ($request->broadcast) {
+                $userIds = \App\Models\User::where('status', 'active')->pluck('id');
+                foreach ($userIds as $userId) {
+                    $notification = Notification::create([
+                        'user_id' => $userId,
+                        'title' => $request->title,
+                        'message' => $request->message,
+                        'type' => $request->type,
+                        'read_status' => false,
+                    ]);
+                    $notifications[] = $notification;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification sent successfully',
+                'data' => [
+                    'count' => count($notifications),
+                    'notifications' => $notifications
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send notification',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update notification (admin only)
+     */
+    public function adminUpdate(Request $request, $id): JsonResponse
+    {
+        try {
+            $notification = Notification::find($id);
+
+            if (!$notification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Notification not found'
+                ], 404);
+            }
+
+            $notification->update($request->only(['title', 'message', 'type', 'read_status']));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification updated successfully',
+                'data' => $notification
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update notification',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete notification (admin only)
+     */
+    public function adminDelete($id): JsonResponse
+    {
+        try {
+            $notification = Notification::find($id);
+
+            if (!$notification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Notification not found'
+                ], 404);
+            }
+
+            $notification->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete notification',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }

@@ -203,17 +203,19 @@ class PaymentValidationService
 
     /**
      * Create payment record for required action
+     * Updated to use gateway_reference instead of legacy pesapal_reference
      */
     public static function createPaymentRecord(User $user, string $paymentType, float $amount, array $metadata = []): Payment
     {
-        $pesapalReference = 'PAY_' . time() . '_' . $user->id . '_' . strtoupper(substr(md5(uniqid()), 0, 8));
+        $gatewayReference = 'PAY_' . time() . '_' . $user->id . '_' . strtoupper(substr(md5(uniqid()), 0, 8));
         
         return Payment::create([
             'user_id' => $user->id,
             'amount' => $amount,
             'payment_type' => $paymentType,
             'status' => 'pending',
-            'pesapal_reference' => $pesapalReference,
+            'gateway_reference' => $gatewayReference, // Updated for ZenoPay compatibility
+            'pesapal_reference' => $gatewayReference, // Keep for backward compatibility
             'metadata' => $metadata
         ]);
     }

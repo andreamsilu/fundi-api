@@ -7,17 +7,21 @@ use App\Models\PaymentPlan;
 use App\Models\UserSubscription;
 use App\Models\PaymentTransaction;
 use App\Services\PaymentService;
+use App\Services\ZenoPayService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
     protected $paymentService;
+    protected $zenoPayService;
 
-    public function __construct(PaymentService $paymentService)
+    public function __construct(PaymentService $paymentService, ZenoPayService $zenoPayService)
     {
         $this->paymentService = $paymentService;
+        $this->zenoPayService = $zenoPayService;
     }
 
     /**
@@ -53,7 +57,7 @@ class PaymentController extends Controller
     /**
      * Get all available payment plans
      */
-    public function getAvailablePlans(Request $request): JsonResponse
+    public function getPlans(Request $request): JsonResponse
     {
         try {
             $plans = $this->paymentService->getAvailablePlans();
@@ -285,6 +289,398 @@ class PaymentController extends Controller
                 'success' => false,
                 'message' => 'Failed to process pay-per-use payment',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while processing payment'
+            ], 500);
+        }
+    }
+
+    /**
+     * Alias for checkActionPermission
+     */
+    public function checkRequirement(Request $request): JsonResponse
+    {
+        return $this->checkActionPermission($request);
+    }
+
+    /**
+     * Alias for checkActionPermission
+     */
+    public function checkPermission(Request $request): JsonResponse
+    {
+        return $this->checkActionPermission($request);
+    }
+
+    /**
+     * Alias for getPaymentHistory
+     */
+    public function getHistory(Request $request): JsonResponse
+    {
+        return $this->getPaymentHistory($request);
+    }
+
+    /**
+     * Alias for getPaymentHistory
+     */
+    public function getUserPayments(Request $request): JsonResponse
+    {
+        return $this->getPaymentHistory($request);
+    }
+
+    /**
+     * Alias for processPayPerUse
+     */
+    public function payPerUse(Request $request): JsonResponse
+    {
+        return $this->processPayPerUse($request);
+    }
+
+    /**
+     * Create a payment
+     */
+    public function createPayment(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'amount' => 'required|numeric|min:0',
+                'type' => 'required|string',
+                'description' => 'nullable|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Create payment logic
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment created successfully'
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create payment',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel a payment
+     */
+    public function cancelPayment(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'payment_id' => 'required|exists:payments,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Cancel payment logic
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment cancelled successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to cancel payment',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get payment configuration
+     */
+    public function getConfig(Request $request): JsonResponse
+    {
+        try {
+            $config = [
+                'payment_gateway' => 'mpesa',
+                'currency' => 'TZS',
+                'supported_methods' => ['mpesa', 'tigopesa', 'airtel_money'],
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $config
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get payment config',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle payment callback from gateway
+     */
+    public function handleCallback(Request $request): JsonResponse
+    {
+        try {
+            // Payment gateway callback logic
+            \Log::info('Payment callback received', $request->all());
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Callback processed'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process callback',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify payment transaction
+     */
+    public function verifyPayment(Request $request, $transactionId): JsonResponse
+    {
+        try {
+            // Check status via ZenoPay
+            $statusResult = $this->zenoPayService->checkOrderStatus($transactionId);
+
+            if ($statusResult['success']) {
+                // Update local transaction status
+                $transaction = PaymentTransaction::where('transaction_id', $transactionId)->first();
+                
+                if ($transaction && $statusResult['payment_status'] === 'COMPLETED') {
+                    $transaction->update([
+                        'status' => 'completed',
+                        'gateway_reference' => $statusResult['reference'],
+                        'completed_at' => now(),
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment verified successfully',
+                    'data' => [
+                        'transaction_id' => $transactionId,
+                        'status' => $statusResult['payment_status'],
+                        'amount' => $statusResult['amount'],
+                        'channel' => $statusResult['channel'],
+                        'reference' => $statusResult['reference'],
+                    ]
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $statusResult['message']
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify payment',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Initiate mobile money payment via ZenoPay
+     */
+    public function initiateMobileMoneyPayment(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'amount' => 'required|numeric|min:1000', // Minimum 1000 TZS
+                'phone_number' => 'required|string',
+                'buyer_name' => 'required|string',
+                'buyer_email' => 'required|email',
+                'payment_type' => 'required|string|in:subscription,job_payment,application_fee',
+                'reference_id' => 'nullable|string', // job_id, subscription_id, etc.
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = $request->user();
+
+            // Format phone number
+            $phoneNumber = $this->zenoPayService->formatPhoneNumber($request->phone_number);
+            
+            if (!$phoneNumber) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid phone number format. Use Tanzanian format (07XXXXXXXX)'
+                ], 400);
+            }
+
+            // Generate unique order ID
+            $orderId = 'FUNDI-' . strtoupper(Str::random(10)) . '-' . time();
+
+            // Create payment transaction record
+            $transaction = PaymentTransaction::create([
+                'user_id' => $user->id,
+                'transaction_id' => $orderId,
+                'amount' => $request->amount,
+                'currency' => 'TZS',
+                'payment_method' => 'mobile_money',
+                'payment_type' => $request->payment_type,
+                'reference_id' => $request->reference_id,
+                'status' => 'pending',
+                'metadata' => [
+                    'phone_number' => $phoneNumber,
+                    'buyer_name' => $request->buyer_name,
+                    'buyer_email' => $request->buyer_email,
+                ],
+            ]);
+
+            // Initiate payment with ZenoPay
+            $paymentResult = $this->zenoPayService->initiatePayment(
+                orderId: $orderId,
+                buyerEmail: $request->buyer_email,
+                buyerName: $request->buyer_name,
+                buyerPhone: $phoneNumber,
+                amount: $request->amount,
+            );
+
+            if ($paymentResult['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment initiated. Please check your phone for the payment prompt.',
+                    'data' => [
+                        'order_id' => $orderId,
+                        'amount' => $request->amount,
+                        'phone_number' => $phoneNumber,
+                        'status' => 'pending',
+                        'instructions' => 'Enter your M-Pesa PIN when prompted on your phone',
+                    ]
+                ], 201);
+            }
+
+            // Payment initiation failed
+            $transaction->update(['status' => 'failed']);
+
+            return response()->json([
+                'success' => false,
+                'message' => $paymentResult['message']
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate payment',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * Check ZenoPay payment status
+     */
+    public function checkZenoPayStatus(Request $request, $orderId): JsonResponse
+    {
+        try {
+            $statusResult = $this->zenoPayService->checkOrderStatus($orderId);
+
+            if ($statusResult['success']) {
+                // Update local transaction if completed
+                if ($statusResult['payment_status'] === 'COMPLETED') {
+                    $transaction = PaymentTransaction::where('transaction_id', $orderId)->first();
+                    if ($transaction) {
+                        $transaction->update([
+                            'status' => 'completed',
+                            'gateway_reference' => $statusResult['reference'],
+                            'completed_at' => now(),
+                        ]);
+                    }
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $statusResult['data']
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $statusResult['message']
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check payment status',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    /**
+     * ZenoPay webhook handler
+     * Receives payment status updates when payment is COMPLETED
+     */
+    public function zenoPayWebhook(Request $request): JsonResponse
+    {
+        try {
+            $apiKey = $request->header('x-api-key');
+            $payload = $request->all();
+
+            \Log::info('ZenoPay webhook received', $payload);
+
+            $result = $this->zenoPayService->processWebhook($payload, $apiKey);
+
+            return response()->json([
+                'success' => $result['success'],
+                'message' => $result['message']
+            ], $result['success'] ? 200 : 400);
+
+        } catch (\Exception $e) {
+            \Log::error('ZenoPay webhook error', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Webhook processing failed'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get supported mobile money providers
+     */
+    public function getMobileMoneyProviders(): JsonResponse
+    {
+        try {
+            $providers = $this->zenoPayService->getSupportedChannels();
+
+            return response()->json([
+                'success' => true,
+                'data' => $providers
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get providers',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }

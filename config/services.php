@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | ZenoPay Payment Gateway (Tanzania Mobile Money)
+    |--------------------------------------------------------------------------
+    | 
+    | ZenoPay handles M-Pesa, Tigo Pesa, and Airtel Money payments in Tanzania
+    | Get your API key from: https://zenoapi.com
+    | Documentation: https://zenopay-docs.netlify.app
+    |
+    */
+    'zenopay' => [
+        'api_key' => env('ZENOPAY_API_KEY'),
+        'base_url' => env('ZENOPAY_BASE_URL', 'https://zenoapi.com'),
+        'webhook_url' => env('ZENOPAY_WEBHOOK_URL', env('APP_URL') . '/api/payments/zenopay/webhook'),
+        'enabled' => env('ZENOPAY_ENABLED', true),
+    ],
+
 ];

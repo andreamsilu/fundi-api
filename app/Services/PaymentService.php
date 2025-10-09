@@ -229,4 +229,51 @@ class PaymentService
             ->get()
             ->toArray();
     }
+
+    /**
+     * Process pay-per-use payment
+     */
+    public function processPayPerUse(User $user, string $feature): array
+    {
+        $plan = $this->getUserPaymentPlan($user);
+
+        // Check if user's plan supports pay-per-use
+        if (!$plan->isPayPerUse()) {
+            return [
+                'success' => false,
+                'message' => 'Your current plan does not support pay-per-use',
+            ];
+        }
+
+        // Get feature cost
+        $costs = [
+            'post_job' => 5000, // TZS 5,000 per job
+            'apply_job' => 2000, // TZS 2,000 per application
+        ];
+
+        $amount = $costs[$feature] ?? 0;
+
+        if ($amount === 0) {
+            return [
+                'success' => false,
+                'message' => 'Invalid feature for pay-per-use',
+            ];
+        }
+
+        // Create transaction
+        $transaction = $this->createTransaction(
+            $user,
+            $plan,
+            'pay_per_use',
+            $amount,
+            $feature,
+            "Pay-per-use: {$feature}"
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Pay-per-use transaction created',
+            'data' => $transaction,
+        ];
+    }
 }

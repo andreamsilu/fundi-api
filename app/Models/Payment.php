@@ -12,7 +12,8 @@ class Payment extends Model
         'amount',
         'payment_type',
         'status',
-        'pesapal_reference',
+        'pesapal_reference', // Legacy field, use gateway_reference for new payments
+        'gateway_reference', // New field for ZenoPay and other gateways
         'metadata',
     ];
 
