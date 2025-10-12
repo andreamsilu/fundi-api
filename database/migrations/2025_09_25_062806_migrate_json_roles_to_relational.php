@@ -12,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Skip if roles table doesn't exist yet (will be created later by Laravel Permission migration)
+        if (!Schema::hasTable('roles')) {
+            return;
+        }
+
         // First, ensure we have the basic roles in the roles table
         $roles = [
             ['name' => 'customer', 'display_name' => 'Customer', 'description' => 'Can post jobs and hire fundis'],

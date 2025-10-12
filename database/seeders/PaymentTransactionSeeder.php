@@ -3,14 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Payment;
-use App\Models\UserSubscription;
+use App\Models\PaymentPlan;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Payment Transaction Seeder
- * Seeds the payment_transactions table with detailed transaction records
+ * Seeds the payment_transactions table with subscription and plan payment records
  * Matches the create_payment_transactions_table migration
  */
 class PaymentTransactionSeeder extends Seeder
@@ -20,138 +19,79 @@ class PaymentTransactionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get all payments
-        $payments = Payment::all();
+        $users = User::all();
+        $paymentPlans = PaymentPlan::all();
 
-        if ($payments->isEmpty()) {
-            $this->command->warn('No payments found. Please run PaymentSeeder first.');
+        if ($users->isEmpty() || $paymentPlans->isEmpty()) {
+            $this->command->warn('No users or payment plans found.');
             return;
         }
 
-        $gateways = ['zenopay', 'mpesa', 'tigo_pesa', 'airtel_money', 'card', 'bank_transfer'];
-        $currencies = ['TZS'];
+        $createdCount = 0;
+        $transactionTypes = ['subscription', 'pay_per_use', 'job_posting', 'fundi_application'];
+        $paymentMethods = ['mpesa', 'tigo_pesa', 'airtel_money', 'card', 'bank_transfer'];
+        $statuses = ['completed', 'pending', 'failed', 'refunded'];
+        $statusWeights = [75, 15, 8, 2]; // 75% completed
 
-        foreach ($payments as $payment) {
-            $gateway = $gateways[array_rand($gateways)];
-            $status = $this->mapPaymentStatus($payment->status);
+        // Create 2-3 transactions per user
+        foreach ($users as $user) {
+            $numTransactions = rand(2, 3);
             
-            DB::table('payment_transactions')->insert([
-                'payment_id' => $payment->id,
-                'transaction_id' => $this->generateTransactionId($gateway),
-                'gateway' => $gateway,
-                'gateway_reference' => $this->generateGatewayReference($gateway),
-                'amount' => $payment->amount,
-                'currency' => $currencies[0],
-                'status' => $status,
-                'payment_method' => $payment->payment_type,
-                'payer_phone' => $this->generatePhoneNumber(),
-                'payer_email' => null,
-                'payer_name' => $this->generateName(),
-                'metadata' => json_encode([
-                    'gateway' => $gateway,
-                    'payment_type' => $payment->payment_type,
-                    'original_amount' => $payment->amount,
-                    'gateway_fee' => $this->calculateGatewayFee($payment->amount, $gateway),
-                    'net_amount' => $payment->amount - $this->calculateGatewayFee($payment->amount, $gateway),
-                ]),
-                'callback_data' => json_encode([
+            for ($i = 0; $i < $numTransactions; $i++) {
+                $plan = $paymentPlans->random();
+                $status = $this->getWeightedStatus($statuses, $statusWeights);
+                
+                DB::table('payment_transactions')->insert([
+                    'user_id' => $user->id,
+                    'payment_plan_id' => $plan->id,
+                    'transaction_type' => $transactionTypes[array_rand($transactionTypes)],
+                    'reference_id' => rand(1, 10), // Job or Application ID
+                    'amount' => $plan->price,
+                    'currency' => 'TZS',
+                    'payment_method' => $paymentMethods[array_rand($paymentMethods)],
+                    'payment_reference' => $this->generatePaymentReference(),
                     'status' => $status,
-                    'timestamp' => now()->toISOString(),
-                    'gateway' => $gateway,
-                ]),
-                'error_message' => $status === 'failed' ? $this->getErrorMessage() : null,
-                'created_at' => $payment->created_at,
-                'updated_at' => $payment->updated_at,
-            ]);
+                    'description' => $this->getTransactionDescription($plan->name),
+                    'metadata' => json_encode([
+                        'plan_type' => $plan->type,
+                        'billing_cycle' => $plan->billing_cycle ?? 'one_time',
+                        'gateway_fee' => round($plan->price * 0.02, 2),
+                    ]),
+                    'paid_at' => $status === 'completed' ? now()->subDays(rand(0, 30)) : null,
+                    'created_at' => now()->subDays(rand(0, 60)),
+                    'updated_at' => now()->subDays(rand(0, 30)),
+                ]);
+
+                $createdCount++;
+            }
         }
 
-        $this->command->info('Created ' . $payments->count() . ' payment transactions successfully.');
+        $this->command->info("Created {$createdCount} payment transactions successfully.");
     }
 
-    private function mapPaymentStatus(string $paymentStatus): string
+    private function getWeightedStatus(array $statuses, array $weights): string
     {
-        $statusMap = [
-            'pending' => 'pending',
-            'completed' => 'completed',
-            'failed' => 'failed',
-            'refunded' => 'refunded',
-        ];
-
-        return $statusMap[$paymentStatus] ?? 'pending';
+        $random = rand(1, 100);
+        $cumulative = 0;
+        
+        for ($i = 0; $i < count($statuses); $i++) {
+            $cumulative += $weights[$i];
+            if ($random <= $cumulative) {
+                return $statuses[$i];
+            }
+        }
+        
+        return $statuses[0];
     }
 
-    private function generateTransactionId(string $gateway): string
+    private function generatePaymentReference(): string
     {
-        $prefix = strtoupper(substr($gateway, 0, 3));
-        return $prefix . '-' . date('Ymd') . '-' . strtoupper(uniqid()) . '-' . rand(1000, 9999);
+        return 'TXN-' . strtoupper(uniqid()) . '-' . rand(1000, 9999);
     }
 
-    private function generateGatewayReference(string $gateway): string
+    private function getTransactionDescription(string $planName): string
     {
-        $prefixes = [
-            'zenopay' => 'ZPY',
-            'mpesa' => 'MPE',
-            'tigo_pesa' => 'TGP',
-            'airtel_money' => 'ATM',
-            'card' => 'CRD',
-            'bank_transfer' => 'BNK',
-        ];
-
-        $prefix = $prefixes[$gateway] ?? 'GEN';
-        return $prefix . time() . rand(10000, 99999);
-    }
-
-    private function generatePhoneNumber(): string
-    {
-        $prefixes = ['0712', '0754', '0765', '0782', '0688', '0622'];
-        $prefix = $prefixes[array_rand($prefixes)];
-        return $prefix . rand(100000, 999999);
-    }
-
-    private function generateName(): string
-    {
-        $names = [
-            'John Mwangi',
-            'Mary Ndunguru',
-            'Peter Kileo',
-            'Grace Hassan',
-            'Michael Mbunda',
-            'Sarah Mwakasege',
-            'David Komba',
-            'Anna Msigwa',
-        ];
-        return $names[array_rand($names)];
-    }
-
-    private function calculateGatewayFee(float $amount, string $gateway): float
-    {
-        $feeRates = [
-            'zenopay' => 0.015,      // 1.5%
-            'mpesa' => 0.02,          // 2%
-            'tigo_pesa' => 0.02,      // 2%
-            'airtel_money' => 0.018,  // 1.8%
-            'card' => 0.025,          // 2.5%
-            'bank_transfer' => 0.01,  // 1%
-        ];
-
-        $rate = $feeRates[$gateway] ?? 0.02;
-        return round($amount * $rate, 2);
-    }
-
-    private function getErrorMessage(): string
-    {
-        $errors = [
-            'Insufficient funds in account',
-            'Transaction declined by gateway',
-            'Invalid payment credentials',
-            'Network timeout - please try again',
-            'Payment gateway temporarily unavailable',
-            'Transaction cancelled by user',
-            'Maximum transaction limit exceeded',
-            'Invalid phone number format',
-        ];
-
-        return $errors[array_rand($errors)];
+        return "Payment for {$planName}";
     }
 }
 

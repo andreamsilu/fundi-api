@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\PaymentPlan;
-use App\Models\UserSubscription;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 /**
@@ -53,16 +53,19 @@ class UserSubscriptionSeeder extends Seeder
                 $status = 'cancelled';
             }
 
-            UserSubscription::create([
+            DB::table('user_subscriptions')->insert([
                 'user_id' => $user->id,
                 'payment_plan_id' => $plan->id,
-                'start_date' => $startDate,
-                'end_date' => $endDate,
+                'starts_at' => $startDate,  // Changed from start_date
+                'expires_at' => $endDate,   // Changed from end_date
                 'status' => $status,
-                'auto_renew' => $status === 'active' ? (rand(1, 100) <= 70) : false, // 70% auto-renew
-                'payment_method' => $this->getPaymentMethod(),
-                'amount_paid' => $plan->price,
-                'transaction_id' => $this->generateTransactionId(),
+                'cancelled_at' => $status === 'cancelled' ? $endDate->copy()->subDays(rand(1, 7)) : null,
+                'metadata' => json_encode([  // Store additional data in metadata
+                    'auto_renew' => $status === 'active' ? (rand(1, 100) <= 70) : false,
+                    'payment_method' => $this->getPaymentMethod(),
+                    'amount_paid' => $plan->price,
+                    'transaction_id' => $this->generateTransactionId(),
+                ]),
                 'created_at' => $startDate,
                 'updated_at' => $status === 'cancelled' ? 
                     $endDate->copy()->subDays(rand(1, 7)) : now(),

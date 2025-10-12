@@ -45,7 +45,7 @@ class JobMediaSeeder extends Seeder
                 $fileSize = $this->getFileSize($mediaType);
 
                 DB::table('job_media')->insert([
-                    'job_posting_id' => $job->id,
+                    'job_id' => $job->id,  // Changed from job_posting_id to job_id
                     'media_type' => $mediaType,
                     'file_path' => $this->getFilePath($job->id, $i, $mediaType),
                     'file_name' => $this->getFileName($job->id, $i, $mediaType),

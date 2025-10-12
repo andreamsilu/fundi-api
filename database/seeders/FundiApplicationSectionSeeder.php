@@ -40,11 +40,11 @@ class FundiApplicationSectionSeeder extends Seeder
                 $isComplete = $application->status !== 'pending' || $index < 3; // First 3 always complete
                 
                 DB::table('fundi_application_sections')->insert([
-                    'fundi_application_id' => $application->id,
+                    'user_id' => $application->user_id,  // Changed from fundi_application_id to user_id
                     'section_name' => $sectionName,
                     'section_data' => json_encode($this->getSectionData($sectionName, $application)),
-                    'is_complete' => $isComplete,
-                    'completed_at' => $isComplete ? $application->created_at->addMinutes(($index + 1) * 5) : null,
+                    'is_completed' => $isComplete,  // Changed from is_complete to is_completed
+                    'submitted_at' => $isComplete ? $application->created_at->addMinutes(($index + 1) * 5) : null,  // Changed from completed_at to submitted_at
                     'created_at' => $application->created_at->addMinutes($index * 5),
                     'updated_at' => $isComplete ? $application->created_at->addMinutes(($index + 1) * 5) : $application->updated_at,
                 ]);

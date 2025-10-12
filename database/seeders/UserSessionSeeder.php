@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\UserSession;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class UserSessionSeeder extends Seeder
 {
@@ -52,21 +52,21 @@ class UserSessionSeeder extends Seeder
                     ? now()->subMinutes(rand(0, 60))
                     : $createdAt->addMinutes(rand(5, 180));
 
-                UserSession::create([
+                DB::table('user_sessions')->insert([
                     'user_id' => $user->id,
                     'session_id' => $this->generateSessionId(),
                     'ip_address' => $ipAddresses[array_rand($ipAddresses)],
                     'user_agent' => $userAgents[array_rand($userAgents)],
                     'status' => $status,
                     'last_activity' => $lastActivity,
-                    'expires_at' => $createdAt->addHours(24), // 24-hour session
-                    'metadata' => [
+                    'expires_at' => $createdAt->copy()->addHours(24), // 24-hour session
+                    'metadata' => json_encode([
                         'device_type' => $this->getDeviceType(),
                         'browser' => $this->getBrowser(),
                         'os' => $this->getOperatingSystem(),
                         'location' => $this->getLocation(),
                         'login_method' => 'phone'
-                    ],
+                    ]),
                     'created_at' => $createdAt,
                     'updated_at' => $lastActivity
                 ]);
