@@ -19,6 +19,9 @@ class RolePermissionSeeder extends Seeder
             'create_jobs', 'edit_jobs', 'delete_jobs', 'view_jobs', 'apply_jobs', 'manage_jobs',
             'manage_job_applications', 'approve_job_applications', 'view_applications', 'view_job_feeds', 'search_jobs',
             
+            // Fundi Application Permissions
+            'create_applications', 'view_all_applications', 'manage_applications', 'delete_applications',
+            
             // Portfolio Management Permissions
             'create_portfolio', 'edit_portfolio', 'delete_portfolio', 'view_portfolio',
             'approve_portfolio', 'reject_portfolio', 'manage_portfolio_media',
@@ -40,17 +43,21 @@ class RolePermissionSeeder extends Seeder
             'manage_notifications', 'send_notifications', 'view_notifications', 'delete_notifications',
             
             // Payment Permissions
-            'view_payments', 'process_payments', 'manage_payments', 'view_payment_analytics',
+            'view_payments', 'make_payments', 'process_payments', 'manage_payments', 'view_payment_analytics',
             
             // System Administration Permissions
             'admin_access', 'view_system', 'manage_system', 'view_analytics', 'manage_analytics',
             'view_audit_logs', 'manage_audit_logs', 'view_system_settings', 'manage_system_settings',
+            'view_dashboard',
+            
+            // File Management Permissions
+            'upload_files', 'delete_files',
             
             // Category Management Permissions
             'view_categories', 'create_categories', 'edit_categories', 'delete_categories', 'manage_categories',
             
             // Fundi Management Permissions
-            'view_fundis', 'approve_fundis', 'reject_fundis', 'manage_fundis', 'view_fundi_analytics',
+            'view_fundis', 'create_fundis', 'edit_fundis', 'delete_fundis', 'approve_fundis', 'reject_fundis', 'manage_fundis', 'view_fundi_analytics',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -68,7 +75,8 @@ class RolePermissionSeeder extends Seeder
                     // Customers can create and manage their own jobs, but NOT browse all jobs
                     'create_jobs', 'edit_jobs', 'delete_jobs', 'manage_job_applications', 
                     'approve_job_applications', 'view_applications', 'view_fundis', 'view_portfolio', 
-                    'create_ratings', 'send_messages', 'view_messages', 'view_notifications', 'view_categories'
+                    'create_ratings', 'send_messages', 'view_messages', 'view_notifications', 'view_categories',
+                    'view_payments', 'make_payments', 'upload_files', 'delete_files', 'create_applications', 'approve_work'
                     // Removed 'view_jobs' - customers should only see their own jobs via /jobs/my-jobs
                 ]
             ],
@@ -77,7 +85,7 @@ class RolePermissionSeeder extends Seeder
                 'permissions' => [
                     'apply_jobs', 'view_jobs', 'view_job_feeds', 'search_jobs', 'create_portfolio',
                     'edit_portfolio', 'view_portfolio', 'create_ratings', 'send_messages', 'view_messages',
-                    'view_notifications', 'view_categories'
+                    'view_notifications', 'view_categories', 'view_payments', 'make_payments', 'upload_files', 'delete_files'
                 ]
             ],
             [
@@ -86,17 +94,19 @@ class RolePermissionSeeder extends Seeder
                     // All permissions including admin_access for admin panel routes
                     'admin_access', 'create_jobs', 'edit_jobs', 'delete_jobs', 'view_jobs', 'apply_jobs', 'manage_jobs',
                     'manage_job_applications', 'approve_job_applications', 'view_applications', 'view_job_feeds', 'search_jobs',
+                    'create_applications', 'view_all_applications', 'manage_applications', 'delete_applications',
                     'create_portfolio', 'edit_portfolio', 'delete_portfolio', 'view_portfolio',
-                    'approve_portfolio', 'reject_portfolio', 'manage_portfolio_media',
+                    'approve_portfolio', 'reject_portfolio', 'manage_portfolio_media', 'approve_work', 'reject_work',
                     'view_users', 'edit_users', 'delete_users', 'manage_roles', 'ban_users', 'unban_users',
                     'view_user_analytics', 'create_ratings', 'edit_ratings', 'delete_ratings', 'view_ratings',
                     'moderate_ratings', 'send_messages', 'view_messages', 'delete_messages', 'moderate_messages',
                     'manage_notifications', 'send_notifications', 'view_notifications', 'delete_notifications',
-                    'view_payments', 'process_payments', 'manage_payments', 'view_payment_analytics',
+                    'view_payments', 'make_payments', 'process_payments', 'manage_payments', 'view_payment_analytics',
                     'view_system', 'manage_system', 'view_analytics', 'manage_analytics',
                     'view_audit_logs', 'manage_audit_logs', 'view_system_settings', 'manage_system_settings',
+                    'view_dashboard', 'upload_files', 'delete_files',
                     'view_categories', 'create_categories', 'edit_categories', 'delete_categories', 'manage_categories',
-                    'view_fundis', 'approve_fundis', 'reject_fundis', 'manage_fundis', 'view_fundi_analytics'
+                    'view_fundis', 'create_fundis', 'edit_fundis', 'delete_fundis', 'approve_fundis', 'reject_fundis', 'manage_fundis', 'view_fundi_analytics'
                 ]
             ]
         ];
