@@ -613,7 +613,7 @@ class AdminRoleController extends Controller
     }
 
     /**
-     * Get all roles
+     * Get all roles with enhanced data
      */
     public function getAllRoles(Request $request): JsonResponse
     {
@@ -627,11 +627,34 @@ class AdminRoleController extends Controller
                 $query->where('name', 'like', "%{$search}%");
             }
 
-            $roles = $query->paginate(10);
+            $roles = $query->get();
+
+            // Transform roles to include display_name and description
+            $transformedRoles = $roles->map(function($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'display_name' => $this->getRoleDisplayName($role->name),
+                    'description' => $this->getRoleDescription($role->name),
+                    'is_system_role' => in_array($role->name, ['customer', 'fundi', 'admin', 'moderator', 'support']),
+                    'is_active' => true,
+                    'permissions' => $role->permissions->map(function($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'name' => $permission->name,
+                            'display_name' => $this->getPermissionDisplayName($permission->name),
+                            'guard_name' => $permission->guard_name,
+                        ];
+                    }),
+                    'guard_name' => $role->guard_name,
+                    'created_at' => $role->created_at,
+                    'updated_at' => $role->updated_at,
+                ];
+            });
 
             return response()->json([
                 'success' => true,
-                'data' => $roles
+                'data' => $transformedRoles
             ]);
 
         } catch (\Exception $e) {
@@ -640,6 +663,38 @@ class AdminRoleController extends Controller
                 'message' => 'Failed to get roles: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get role display name
+     */
+    private function getRoleDisplayName(string $name): string
+    {
+        $displayNames = [
+            'customer' => 'Customer',
+            'fundi' => 'Fundi (Service Provider)',
+            'admin' => 'Administrator',
+            'moderator' => 'Moderator',
+            'support' => 'Support Staff',
+        ];
+
+        return $displayNames[$name] ?? ucwords(str_replace('_', ' ', $name));
+    }
+
+    /**
+     * Get role description
+     */
+    private function getRoleDescription(string $name): string
+    {
+        $descriptions = [
+            'customer' => 'Can post jobs and hire fundis for their projects',
+            'fundi' => 'Can browse jobs, apply to jobs, and manage portfolio',
+            'admin' => 'Full access to platform management and all features',
+            'moderator' => 'Can moderate content and manage users with limited access',
+            'support' => 'View-only access for customer support purposes',
+        ];
+
+        return $descriptions[$name] ?? '';
     }
 
     /**
@@ -850,9 +905,30 @@ class AdminRoleController extends Controller
         try {
             $role = Role::with('permissions')->findOrFail($roleId);
 
+            // Transform role to include display_name and description
+            $transformedRole = [
+                'id' => $role->id,
+                'name' => $role->name,
+                'display_name' => $this->getRoleDisplayName($role->name),
+                'description' => $this->getRoleDescription($role->name),
+                'is_system_role' => in_array($role->name, ['customer', 'fundi', 'admin', 'moderator', 'support']),
+                'is_active' => true,
+                'permissions' => $role->permissions->map(function($permission) {
+                    return [
+                        'id' => $permission->id,
+                        'name' => $permission->name,
+                        'display_name' => $this->getPermissionDisplayName($permission->name),
+                        'guard_name' => $permission->guard_name,
+                    ];
+                }),
+                'guard_name' => $role->guard_name,
+                'created_at' => $role->created_at,
+                'updated_at' => $role->updated_at,
+            ];
+
             return response()->json([
                 'success' => true,
-                'data' => $role
+                'data' => $transformedRole
             ]);
 
         } catch (\Exception $e) {
