@@ -13,6 +13,78 @@ use Illuminate\Support\Facades\Validator;
 class AdminRoleController extends Controller
 {
     /**
+     * Get all roles (alias for getAllRoles)
+     */
+    public function index(Request $request): JsonResponse
+    {
+        return $this->getAllRoles($request);
+    }
+
+    /**
+     * Get specific role by ID (alias for getRoleDetails)
+     */
+    public function show(Request $request, $id): JsonResponse
+    {
+        return $this->getRoleDetails($request, $id);
+    }
+
+    /**
+     * Update role (alias for updateRole)
+     */
+    public function update(Request $request, $id): JsonResponse
+    {
+        return $this->updateRole($request, $id);
+    }
+
+    /**
+     * Delete role (alias for deleteRole)
+     */
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        return $this->deleteRole($request, $id);
+    }
+
+    /**
+     * Create role (alias for createRole)
+     */
+    public function store(Request $request): JsonResponse
+    {
+        return $this->createRole($request);
+    }
+
+    /**
+     * Get all permissions (alias for getAllPermissions)
+     */
+    public function getPermissions(Request $request): JsonResponse
+    {
+        return $this->getAllPermissions($request);
+    }
+
+    /**
+     * Add role to user (alias for addRole)
+     */
+    public function addRoleToUser(Request $request, $userId): JsonResponse
+    {
+        return $this->addRole($request, $userId);
+    }
+
+    /**
+     * Remove role from user (alias for removeRole)
+     */
+    public function removeRoleFromUser(Request $request, $userId): JsonResponse
+    {
+        return $this->removeRole($request, $userId);
+    }
+
+    /**
+     * Set user roles (alias for setRoles)
+     */
+    public function setUserRoles(Request $request, $userId): JsonResponse
+    {
+        return $this->setRoles($request, $userId);
+    }
+
+    /**
      * Get all users with their roles
      */
     public function getUsersWithRoles(Request $request): JsonResponse
