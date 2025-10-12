@@ -242,6 +242,7 @@ Route::middleware('jwt.auth')->group(function () {
         Route::get('/admin/roles/available', [AdminRoleController::class, 'getAvailableRoles']);
         
         // Category Management (Admin)
+        Route::get('/admin/categories', [CategoryController::class, 'adminIndex']);
         Route::post('/admin/categories', [CategoryController::class, 'store']);
         Route::patch('/admin/categories/{id}', [CategoryController::class, 'update']);
         Route::delete('/admin/categories/{id}', [CategoryController::class, 'destroy']);

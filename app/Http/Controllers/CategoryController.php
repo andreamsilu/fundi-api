@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 class CategoryController extends Controller
 {
     /**
-     * List all categories
+     * List all categories (public - no pagination)
      */
     public function index(): JsonResponse
     {
@@ -20,6 +20,56 @@ class CategoryController extends Controller
                 'success' => true,
                 'message' => 'Categories retrieved successfully',
                 'data' => $categories
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve categories',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while retrieving categories'
+            ], 500);
+        }
+    }
+
+    /**
+     * List all categories with pagination and filtering (admin only)
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        try {
+            // Get filter parameters
+            $search = $request->input('search');
+            $perPage = $request->input('per_page', 10);
+            $page = $request->input('page', 1);
+
+            // Build query
+            $query = Category::query();
+
+            // Apply search filter if provided
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            // Order by name
+            $query->orderBy('name');
+
+            // Paginate results
+            $categories = $query->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Categories retrieved successfully',
+                'data' => $categories->items(),
+                'current_page' => $categories->currentPage(),
+                'last_page' => $categories->lastPage(),
+                'per_page' => $categories->perPage(),
+                'total' => $categories->total()
             ]);
 
         } catch (\Exception $e) {
