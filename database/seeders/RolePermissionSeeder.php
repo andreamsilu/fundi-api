@@ -43,7 +43,7 @@ class RolePermissionSeeder extends Seeder
             'view_payments', 'process_payments', 'manage_payments', 'view_payment_analytics',
             
             // System Administration Permissions
-            'view_system', 'manage_system', 'view_analytics', 'manage_analytics',
+            'admin_access', 'view_system', 'manage_system', 'view_analytics', 'manage_analytics',
             'view_audit_logs', 'manage_audit_logs', 'view_system_settings', 'manage_system_settings',
             
             // Category Management Permissions
@@ -83,9 +83,9 @@ class RolePermissionSeeder extends Seeder
             [
                 'name' => 'admin',
                 'permissions' => [
-                    // All permissions
-                    'create_jobs', 'edit_jobs', 'delete_jobs', 'view_jobs', 'apply_jobs', 'manage_jobs',
-                    'manage_job_applications', 'approve_job_applications', 'view_job_feeds', 'search_jobs',
+                    // All permissions including admin_access for admin panel routes
+                    'admin_access', 'create_jobs', 'edit_jobs', 'delete_jobs', 'view_jobs', 'apply_jobs', 'manage_jobs',
+                    'manage_job_applications', 'approve_job_applications', 'view_applications', 'view_job_feeds', 'search_jobs',
                     'create_portfolio', 'edit_portfolio', 'delete_portfolio', 'view_portfolio',
                     'approve_portfolio', 'reject_portfolio', 'manage_portfolio_media',
                     'view_users', 'edit_users', 'delete_users', 'manage_roles', 'ban_users', 'unban_users',
