@@ -17,7 +17,7 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             // Job Management Permissions
             'create_jobs', 'edit_jobs', 'delete_jobs', 'view_jobs', 'apply_jobs', 'manage_jobs',
-            'manage_job_applications', 'approve_job_applications', 'view_job_feeds', 'search_jobs',
+            'manage_job_applications', 'approve_job_applications', 'view_applications', 'view_job_feeds', 'search_jobs',
             
             // Portfolio Management Permissions
             'create_portfolio', 'edit_portfolio', 'delete_portfolio', 'view_portfolio',
@@ -67,8 +67,8 @@ class RolePermissionSeeder extends Seeder
                 'permissions' => [
                     // Customers can create and manage their own jobs, but NOT browse all jobs
                     'create_jobs', 'edit_jobs', 'delete_jobs', 'manage_job_applications', 
-                    'approve_job_applications', 'view_fundis', 'view_portfolio', 'create_ratings',
-                    'send_messages', 'view_messages', 'view_notifications', 'view_categories'
+                    'approve_job_applications', 'view_applications', 'view_fundis', 'view_portfolio', 
+                    'create_ratings', 'send_messages', 'view_messages', 'view_notifications', 'view_categories'
                     // Removed 'view_jobs' - customers should only see their own jobs via /jobs/my-jobs
                 ]
             ],

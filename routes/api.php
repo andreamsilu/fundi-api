@@ -8,7 +8,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FundiController;
-use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DashboardController;
@@ -95,10 +95,10 @@ Route::middleware('jwt.auth')->group(function () {
     Route::delete('/fundis/{id}', [FundiController::class, 'destroy'])->middleware('jwt.permission:delete_fundis');
     
     // Application routes
-    Route::post('/jobs/{jobId}/apply', [ApplicationController::class, 'apply'])->middleware('jwt.permission:apply_jobs');
-    Route::get('/job-applications/my-applications', [ApplicationController::class, 'myApplications'])->middleware('jwt.permission:view_applications');
-    Route::get('/jobs/{jobId}/applications', [ApplicationController::class, 'jobApplications'])->middleware('jwt.permission:view_applications');
-    Route::patch('/job-applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('jwt.permission:manage_applications');
+    Route::post('/jobs/{jobId}/apply', [JobApplicationController::class, 'apply'])->middleware('jwt.permission:apply_jobs');
+    Route::get('/job-applications/my-applications', [JobApplicationController::class, 'getMyApplications'])->middleware('jwt.permission:view_applications');
+    Route::get('/jobs/{jobId}/applications', [JobApplicationController::class, 'getJobApplications'])->middleware('jwt.permission:view_applications');
+    Route::patch('/job-applications/{id}/status', [JobApplicationController::class, 'updateApplicationStatus'])->middleware('jwt.permission:manage_applications');
     
     // Payment routes
     Route::get('/payments/plans', [PaymentController::class, 'getPlans'])->middleware('jwt.permission:view_payments');
