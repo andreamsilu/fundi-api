@@ -64,24 +64,24 @@ Route::middleware('jwt.auth')->group(function () {
     Route::put('/settings/notifications', [SettingsController::class, 'updateNotificationPreferences']);
     
     // Job routes (role/payment checks handled in controllers)
-    // Available jobs - public feed for everyone to view
+    // Available jobs - ONLY for fundis to browse and apply
     Route::get('/jobs', [JobController::class, 'index'])->middleware('jwt.permission:view_jobs');
-    // User's own jobs - only job owner can manage
-    Route::get('/jobs/my-jobs', [JobController::class, 'myJobs'])->middleware('jwt.permission:view_jobs');
-    // Create new job
+    // User's own jobs - CUSTOMERS see their posted jobs, FUNDIS see jobs they applied to
+    Route::get('/jobs/my-jobs', [JobController::class, 'myJobs']); // No permission check - all users can see their own
+    // Create new job - ONLY for customers
     Route::post('/jobs', [JobController::class, 'store'])->middleware('jwt.permission:create_jobs');
-    // View specific job
-    Route::get('/jobs/{id}', [JobController::class, 'show'])->middleware('jwt.permission:view_jobs');
-    // Update job - only job owner can update
+    // View specific job - Accessible by job owner OR users with view_jobs permission (checked in controller)
+    Route::get('/jobs/{id}', [JobController::class, 'show']); // Permission checked in controller
+    // Update job - ONLY job owner (customer who posted it)
     Route::patch('/jobs/{id}', [JobController::class, 'update'])->middleware('jwt.permission:edit_jobs');
-    // Delete job - only job owner can delete
+    // Delete job - ONLY job owner (customer who posted it)
     Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->middleware('jwt.permission:delete_jobs');
     
-    // Feed routes
+    // Feed routes - Job feeds are ONLY for fundis to browse
     Route::get('/feeds/jobs', [FeedController::class, 'getJobFeed'])->middleware('jwt.permission:view_jobs');
     Route::get('/feeds/fundis', [FeedController::class, 'getFundiFeed'])->middleware('jwt.permission:view_fundis');
     Route::get('/feeds/fundis/{id}', [FeedController::class, 'getFundiProfile'])->middleware('jwt.permission:view_fundis');
-    Route::get('/feeds/jobs/{id}', [FeedController::class, 'getJobDetails'])->middleware('jwt.permission:view_jobs');
+    Route::get('/feeds/jobs/{id}', [FeedController::class, 'getJobDetails'])->middleware('jwt.permission:view_jobs'); // Fundis only
     
     // Category routes (public)
     Route::get('/categories', [CategoryController::class, 'index']);

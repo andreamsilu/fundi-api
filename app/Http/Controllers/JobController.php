@@ -13,16 +13,20 @@ use Illuminate\Support\Facades\Validator;
 class JobController extends Controller
 {
     /**
-     * List all jobs (available jobs for everyone)
+     * List all available jobs (ONLY for fundis to browse and apply)
+     * Customers should use /jobs/my-jobs to see their posted jobs
      */
     public function index(Request $request): JsonResponse
     {
         try {
             $user = $request->user();
+            
+            // Only fundis should browse all available jobs
+            // Customers have their own /jobs/my-jobs endpoint
             $query = Job::with(['customer:id,full_name,phone,email', 'category:id,name', 'applications', 'media']);
 
-            // Show all available jobs (public feed) - no filtering by user
-            // This is the public job feed that everyone can see
+            // Show only open jobs for fundis to apply
+            $query->where('status', 'open');
             
             // Debug logging
             \Log::info('JobController index - User ID: ' . $user->id);
@@ -248,10 +252,15 @@ class JobController extends Controller
 
     /**
      * Get a specific job
+     * Accessible by:
+     * - Fundis (to view job details before applying)
+     * - Job owner (customer who posted it)
+     * - Admins
      */
     public function show(Request $request, $id): JsonResponse
     {
         try {
+            $user = $request->user();
             $job = Job::with(['customer', 'category', 'applications.fundi.fundiProfile', 'media'])
                 ->find($id);
 
@@ -260,6 +269,19 @@ class JobController extends Controller
                     'success' => false,
                     'message' => 'Job not found'
                 ], 404);
+            }
+
+            // Allow access if:
+            // 1. User is the job owner (customer who posted it)
+            // 2. User has view_jobs permission (fundis, admins)
+            $isOwner = $job->customer_id === $user->id;
+            $canView = $user->can('view_jobs') || $isOwner;
+
+            if (!$canView) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to view this job'
+                ], 403);
             }
 
             return response()->json([
