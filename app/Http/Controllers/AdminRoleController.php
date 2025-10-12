@@ -643,16 +643,33 @@ class AdminRoleController extends Controller
     }
 
     /**
-     * Get all permissions
+     * Get all permissions grouped by category
      */
     public function getAllPermissions(Request $request): JsonResponse
     {
         try {
             $permissions = Permission::orderBy('name')->get();
 
+            // Transform permissions to include display_name, description, and category
+            $transformedPermissions = $permissions->map(function($permission) {
+                return [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                    'display_name' => $this->getPermissionDisplayName($permission->name),
+                    'description' => $this->getPermissionDescription($permission->name),
+                    'category' => $this->getPermissionCategory($permission->name),
+                    'guard_name' => $permission->guard_name,
+                    'created_at' => $permission->created_at,
+                    'updated_at' => $permission->updated_at,
+                ];
+            });
+
+            // Group permissions by category
+            $groupedPermissions = $transformedPermissions->groupBy('category');
+
             return response()->json([
                 'success' => true,
-                'data' => $permissions
+                'data' => $groupedPermissions
             ]);
 
         } catch (\Exception $e) {
@@ -661,6 +678,131 @@ class AdminRoleController extends Controller
                 'message' => 'Failed to get permissions: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get permission category based on name
+     */
+    private function getPermissionCategory(string $name): string
+    {
+        $categories = [
+            'create_jobs' => 'job_management',
+            'edit_jobs' => 'job_management',
+            'delete_jobs' => 'job_management',
+            'view_jobs' => 'job_management',
+            'apply_jobs' => 'job_management',
+            'manage_jobs' => 'job_management',
+            'manage_job_applications' => 'job_management',
+            'approve_job_applications' => 'job_management',
+            'view_applications' => 'job_management',
+            'view_job_feeds' => 'job_management',
+            'search_jobs' => 'job_management',
+            
+            'create_portfolio' => 'portfolio_management',
+            'edit_portfolio' => 'portfolio_management',
+            'delete_portfolio' => 'portfolio_management',
+            'view_portfolio' => 'portfolio_management',
+            'approve_portfolio' => 'portfolio_management',
+            'reject_portfolio' => 'portfolio_management',
+            'manage_portfolio_media' => 'portfolio_management',
+            
+            'view_work_submissions' => 'work_management',
+            'approve_work' => 'work_management',
+            'reject_work' => 'work_management',
+            
+            'view_users' => 'user_management',
+            'edit_users' => 'user_management',
+            'delete_users' => 'user_management',
+            'manage_roles' => 'user_management',
+            'ban_users' => 'user_management',
+            'unban_users' => 'user_management',
+            'view_user_analytics' => 'user_management',
+            
+            'create_ratings' => 'ratings_reviews',
+            'edit_ratings' => 'ratings_reviews',
+            'delete_ratings' => 'ratings_reviews',
+            'view_ratings' => 'ratings_reviews',
+            'moderate_ratings' => 'ratings_reviews',
+            
+            'send_messages' => 'messaging',
+            'view_messages' => 'messaging',
+            'delete_messages' => 'messaging',
+            'moderate_messages' => 'messaging',
+            
+            'manage_notifications' => 'notifications',
+            'send_notifications' => 'notifications',
+            'view_notifications' => 'notifications',
+            'delete_notifications' => 'notifications',
+            
+            'view_payments' => 'payments',
+            'process_payments' => 'payments',
+            'manage_payments' => 'payments',
+            'view_payment_analytics' => 'payments',
+            'make_payments' => 'payments',
+            
+            'admin_access' => 'system_admin',
+            'view_system' => 'system_admin',
+            'manage_system' => 'system_admin',
+            'view_analytics' => 'system_admin',
+            'manage_analytics' => 'system_admin',
+            'view_audit_logs' => 'system_admin',
+            'manage_audit_logs' => 'system_admin',
+            'view_system_settings' => 'system_admin',
+            'manage_system_settings' => 'system_admin',
+            'view_dashboard' => 'system_admin',
+            
+            'view_categories' => 'category_management',
+            'create_categories' => 'category_management',
+            'edit_categories' => 'category_management',
+            'delete_categories' => 'category_management',
+            'manage_categories' => 'category_management',
+            
+            'view_fundis' => 'fundi_management',
+            'create_fundis' => 'fundi_management',
+            'edit_fundis' => 'fundi_management',
+            'delete_fundis' => 'fundi_management',
+            'approve_fundis' => 'fundi_management',
+            'reject_fundis' => 'fundi_management',
+            'manage_fundis' => 'fundi_management',
+            'view_fundi_analytics' => 'fundi_management',
+            
+            'upload_files' => 'file_management',
+            'delete_files' => 'file_management',
+        ];
+
+        return $categories[$name] ?? 'other';
+    }
+
+    /**
+     * Get human-readable permission display name
+     */
+    private function getPermissionDisplayName(string $name): string
+    {
+        return ucwords(str_replace('_', ' ', $name));
+    }
+
+    /**
+     * Get permission description
+     */
+    private function getPermissionDescription(string $name): string
+    {
+        $descriptions = [
+            'admin_access' => 'Access to admin panel and admin routes',
+            'create_jobs' => 'Ability to create new job postings',
+            'edit_jobs' => 'Ability to edit existing jobs',
+            'delete_jobs' => 'Ability to delete jobs',
+            'view_jobs' => 'Ability to view and browse all available jobs',
+            'apply_jobs' => 'Ability to apply for job postings',
+            'manage_jobs' => 'Full management access to jobs',
+            'manage_job_applications' => 'Manage applications to jobs',
+            'approve_job_applications' => 'Approve or reject job applications',
+            'view_applications' => 'View job applications',
+            'view_job_feeds' => 'Access to job feed and marketplace',
+            'search_jobs' => 'Search and filter jobs',
+            // Add more as needed
+        ];
+
+        return $descriptions[$name] ?? 'Permission to ' . str_replace('_', ' ', $name);
     }
 
     /**
