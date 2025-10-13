@@ -18,8 +18,8 @@ use App\Models\PaymentTransaction;
  */
 class ZenoPayService
 {
-    private Client $client;
-    private string $apiKey;
+    private ?Client $client;
+    private ?string $apiKey;
     private string $baseUrl;
 
     public function __construct()
@@ -27,15 +27,28 @@ class ZenoPayService
         $this->apiKey = config('services.zenopay.api_key');
         $this->baseUrl = config('services.zenopay.base_url', 'https://zenoapi.com');
         
-        $this->client = new Client([
-            'base_uri' => $this->baseUrl,
-            'timeout' => 60, // Mobile money payments can take time
-            'headers' => [
-                'x-api-key' => $this->apiKey,
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ],
-        ]);
+        // Only initialize client if API key is configured
+        if ($this->apiKey) {
+            $this->client = new Client([
+                'base_uri' => $this->baseUrl,
+                'timeout' => 60, // Mobile money payments can take time
+                'headers' => [
+                    'x-api-key' => $this->apiKey,
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Check if ZenoPay is properly configured
+     * 
+     * @return bool
+     */
+    private function isConfigured(): bool
+    {
+        return !empty($this->apiKey) && !empty($this->client);
     }
 
     /**
@@ -57,6 +70,15 @@ class ZenoPayService
         float $amount,
         ?string $webhookUrl = null
     ): array {
+        if (!$this->isConfigured()) {
+            Log::warning('ZenoPay: Service not configured - API key missing');
+            return [
+                'success' => false,
+                'message' => 'Payment service not configured. Please contact support.',
+                'error' => 'ZENOPAY_NOT_CONFIGURED',
+            ];
+        }
+
         try {
             $payload = [
                 'order_id' => $orderId,
@@ -117,6 +139,15 @@ class ZenoPayService
      */
     public function checkOrderStatus(string $orderId): array
     {
+        if (!$this->isConfigured()) {
+            Log::warning('ZenoPay: Service not configured - API key missing');
+            return [
+                'success' => false,
+                'message' => 'Payment service not configured. Please contact support.',
+                'error' => 'ZENOPAY_NOT_CONFIGURED',
+            ];
+        }
+
         try {
             Log::info('ZenoPay: Checking order status', ['order_id' => $orderId]);
 
@@ -171,6 +202,15 @@ class ZenoPayService
      */
     public function processWebhook(array $payload, string $apiKeyFromHeader): array
     {
+        if (!$this->isConfigured()) {
+            Log::warning('ZenoPay: Service not configured - cannot process webhook');
+            return [
+                'success' => false,
+                'message' => 'Payment service not configured',
+                'error' => 'ZENOPAY_NOT_CONFIGURED',
+            ];
+        }
+
         // Verify API key from webhook request
         if ($apiKeyFromHeader !== $this->apiKey) {
             Log::warning('ZenoPay: Webhook authentication failed', [
