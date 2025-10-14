@@ -172,6 +172,14 @@ class FeedController extends Controller
             $paginator->getCollection()->transform(function ($fundi) {
                 $profile = $fundi->fundiProfile;
                 
+                // Parse skills for category extraction
+                $skillsArray = is_string($profile->skills ?? '') 
+                    ? json_decode($profile->skills, true) ?? []
+                    : ($profile->skills ?? []);
+                
+                // Primary category is the first skill
+                $primaryCategory = !empty($skillsArray) ? $skillsArray[0] : 'Skilled Fundi';
+                
                 return [
                     // Essential info
                     'id' => $fundi->id,
@@ -181,6 +189,10 @@ class FeedController extends Controller
                     'profile_image' => $profile->profile_image ?? null,
                     'location' => $fundi->location ?? $profile->location ?? null,
                     'bio' => \Illuminate\Support\Str::limit($profile->bio ?? '', 150),
+                    
+                    // Category/Profession (derived from first skill)
+                    'primary_category' => $primaryCategory,
+                    'profession' => $primaryCategory,
                     
                     // Rating info
                     'average_rating' => round((float)($fundi->average_rating ?? 0), 1),
@@ -194,12 +206,7 @@ class FeedController extends Controller
                     ],
                     
                     // Skills (parse JSON if stored as JSON string)
-                    'top_skills' => array_slice(
-                        is_string($profile->skills ?? '') 
-                            ? json_decode($profile->skills, true) ?? []
-                            : ($profile->skills ?? []),
-                        0, 5
-                    ),
+                    'top_skills' => array_slice($skillsArray, 0, 5),
                     
                     // Portfolio preview (limited to 3 items with 1 image each)
                     'portfolio_preview' => $fundi->visiblePortfolio->map(function($item) {
