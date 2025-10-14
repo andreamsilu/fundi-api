@@ -684,4 +684,75 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get transaction receipt details
+     */
+    public function getTransactionReceipt(Request $request, $transactionId): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            // Find transaction and ensure it belongs to the user
+            $transaction = PaymentTransaction::with(['user', 'paymentPlan'])
+                ->where('id', $transactionId)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$transaction) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction not found'
+                ], 404);
+            }
+
+            // Only completed transactions can have receipts
+            if (!$transaction->isCompleted()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Receipt is only available for completed transactions'
+                ], 400);
+            }
+
+            // Build receipt data
+            $receiptData = [
+                'transaction_id' => $transaction->id,
+                'receipt_number' => 'RCPT-' . str_pad($transaction->id, 8, '0', STR_PAD_LEFT),
+                'transaction_reference' => $transaction->transaction_id ?? '',
+                'payment_reference' => $transaction->payment_reference ?? '',
+                'gateway_reference' => $transaction->gateway_reference ?? '',
+                'amount' => $transaction->amount,
+                'currency' => $transaction->currency ?? 'TZS',
+                'payment_method' => $transaction->payment_method ?? 'N/A',
+                'payment_type' => $transaction->transaction_type ?? 'N/A',
+                'description' => $transaction->description ?? '',
+                'status' => $transaction->status,
+                'paid_at' => $transaction->paid_at,
+                'created_at' => $transaction->created_at,
+                'metadata' => $transaction->metadata,
+                'user' => [
+                    'name' => $transaction->user->name ?? '',
+                    'email' => $transaction->user->email ?? '',
+                    'phone' => $transaction->user->phone_number ?? '',
+                ],
+                'payment_plan' => $transaction->paymentPlan ? [
+                    'name' => $transaction->paymentPlan->name,
+                    'description' => $transaction->paymentPlan->description,
+                ] : null,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Receipt retrieved successfully',
+                'data' => $receiptData
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve receipt',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
 }

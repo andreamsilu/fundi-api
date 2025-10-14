@@ -119,6 +119,7 @@ Route::middleware('jwt.auth')->group(function () {
     Route::get('/payments/user', [PaymentController::class, 'getUserPayments'])->middleware('jwt.permission:view_payments');
     Route::get('/payments/config', [PaymentController::class, 'getConfig'])->middleware('jwt.permission:view_payments');
     Route::get('/payments/verify/{transactionId}', [PaymentController::class, 'verifyPayment'])->middleware('jwt.permission:view_payments');
+    Route::get('/payments/receipt/{transactionId}', [PaymentController::class, 'getTransactionReceipt'])->middleware('jwt.permission:view_payments');
     
     // ZenoPay Mobile Money Integration (Tanzania)
     Route::post('/payments/zenopay/initiate', [PaymentController::class, 'initiateMobileMoneyPayment'])->middleware('jwt.permission:make_payments');
