@@ -19,12 +19,15 @@ class FundiProfileSeeder extends Seeder
         })->get();
 
         foreach ($fundiUsers as $index => $user) {
+            $skills = $this->getSkills($index);
+            
             FundiProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'full_name' => $this->getFirstName($index) . ' ' . $this->getLastName($index),
+                    'category_id' => $this->getCategoryId($index),
                     'bio' => $this->getBio($index),
-                    'skills' => json_encode($this->getSkills($index)),
+                    'skills' => json_encode($skills),
                     'experience_years' => rand(1, 15),
                     'location_lat' => $this->getLatitude($index),
                     'location_lng' => $this->getLongitude($index),
@@ -102,5 +105,29 @@ class FundiProfileSeeder extends Seeder
             null
         ];
         return $certificates[$index % count($certificates)];
+    }
+
+    /**
+     * Get category ID based on fundi's primary skill
+     * Maps skills to categories in the database
+     */
+    private function getCategoryId($index): int
+    {
+        // Category IDs from the database:
+        // 1: Plumbing, 2: Electrical, 3: Carpentry, 4: Masonry,
+        // 5: Painting, 6: Roofing, 7: Flooring, 12: General Maintenance
+        
+        $categoryMapping = [
+            1,  // Plumbing
+            2,  // Electrical
+            3,  // Carpentry
+            4,  // Masonry
+            5,  // Painting
+            6,  // Roofing
+            7,  // Flooring
+            12  // General Maintenance
+        ];
+        
+        return $categoryMapping[$index % count($categoryMapping)];
     }
 }
