@@ -19,6 +19,11 @@ use App\Http\Controllers\AuditController;
 use App\Http\Controllers\AdminRoleController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AdminPaymentController;
+use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\RatingController;
+use App\Http\Controllers\WorkApprovalController;
+use App\Http\Controllers\FundiApplicationController;
+use App\Http\Controllers\AdminSettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -133,40 +138,40 @@ Route::middleware('jwt.auth')->group(function () {
     Route::get('/search/suggestions', [FeedController::class, 'getSearchSuggestions']);
     
     // Portfolio routes
-    Route::get('/portfolio/my-portfolio', [\App\Http\Controllers\PortfolioController::class, 'getMyPortfolio'])->middleware('jwt.permission:view_portfolio');
-    Route::get('/portfolio/status', [\App\Http\Controllers\PortfolioController::class, 'getPortfolioStatus'])->middleware('jwt.permission:view_portfolio');
-    Route::get('/portfolio/{fundiId}', [\App\Http\Controllers\PortfolioController::class, 'getFundiPortfolio'])->middleware('jwt.permission:view_portfolio');
-    Route::post('/portfolio', [\App\Http\Controllers\PortfolioController::class, 'store'])->middleware('jwt.permission:create_portfolio');
-    Route::patch('/portfolio/{id}', [\App\Http\Controllers\PortfolioController::class, 'update'])->middleware('jwt.permission:edit_portfolio');
-    Route::delete('/portfolio/{id}', [\App\Http\Controllers\PortfolioController::class, 'destroy'])->middleware('jwt.permission:delete_portfolio');
+    Route::get('/portfolio/my-portfolio', [PortfolioController::class, 'getMyPortfolio'])->middleware('jwt.permission:view_portfolio');
+    Route::get('/portfolio/status', [PortfolioController::class, 'getPortfolioStatus'])->middleware('jwt.permission:view_portfolio');
+    Route::get('/portfolio/{fundiId}', [PortfolioController::class, 'getFundiPortfolio'])->middleware('jwt.permission:view_portfolio');
+    Route::post('/portfolio', [PortfolioController::class, 'store'])->middleware('jwt.permission:create_portfolio');
+    Route::patch('/portfolio/{id}', [PortfolioController::class, 'update'])->middleware('jwt.permission:edit_portfolio');
+    Route::delete('/portfolio/{id}', [PortfolioController::class, 'destroy'])->middleware('jwt.permission:delete_portfolio');
     
     // Rating routes
-    Route::post('/ratings', [\App\Http\Controllers\RatingController::class, 'store'])->middleware('jwt.permission:create_ratings');
-    Route::get('/ratings/my-ratings', [\App\Http\Controllers\RatingController::class, 'getMyRatings'])->middleware('jwt.permission:view_ratings');
-    Route::get('/ratings/fundi/{fundiId}', [\App\Http\Controllers\RatingController::class, 'getFundiRatings'])->middleware('jwt.permission:view_ratings');
-    Route::patch('/ratings/{id}', [\App\Http\Controllers\RatingController::class, 'update'])->middleware('jwt.permission:edit_ratings');
-    Route::delete('/ratings/{id}', [\App\Http\Controllers\RatingController::class, 'delete'])->middleware('jwt.permission:delete_ratings');
+    Route::post('/ratings', [RatingController::class, 'store'])->middleware('jwt.permission:create_ratings');
+    Route::get('/ratings/my-ratings', [RatingController::class, 'getMyRatings'])->middleware('jwt.permission:view_ratings');
+    Route::get('/ratings/fundi/{fundiId}', [RatingController::class, 'getFundiRatings'])->middleware('jwt.permission:view_ratings');
+    Route::patch('/ratings/{id}', [RatingController::class, 'update'])->middleware('jwt.permission:edit_ratings');
+    Route::delete('/ratings/{id}', [RatingController::class, 'delete'])->middleware('jwt.permission:delete_ratings');
     
     // Work Approval routes
-    Route::get('/work-approval/portfolio-pending', [\App\Http\Controllers\WorkApprovalController::class, 'getPendingPortfolioItems'])->middleware('jwt.permission:approve_work');
-    Route::get('/work-approval/submissions-pending', [\App\Http\Controllers\WorkApprovalController::class, 'getPendingWorkSubmissions'])->middleware('jwt.permission:approve_work');
-    Route::post('/work-approval/portfolio/{id}/approve', [\App\Http\Controllers\WorkApprovalController::class, 'approvePortfolioItem'])->middleware('jwt.permission:approve_work');
-    Route::post('/work-approval/portfolio/{id}/reject', [\App\Http\Controllers\WorkApprovalController::class, 'rejectPortfolioItem'])->middleware('jwt.permission:approve_work');
-    Route::post('/work-approval/submissions/{id}/approve', [\App\Http\Controllers\WorkApprovalController::class, 'approveWorkSubmission'])->middleware('jwt.permission:approve_work');
-    Route::post('/work-approval/submissions/{id}/reject', [\App\Http\Controllers\WorkApprovalController::class, 'rejectWorkSubmission'])->middleware('jwt.permission:approve_work');
+    Route::get('/work-approval/portfolio-pending', [WorkApprovalController::class, 'getPendingPortfolioItems'])->middleware('jwt.permission:approve_work');
+    Route::get('/work-approval/submissions-pending', [WorkApprovalController::class, 'getPendingWorkSubmissions'])->middleware('jwt.permission:approve_work');
+    Route::post('/work-approval/portfolio/{id}/approve', [WorkApprovalController::class, 'approvePortfolioItem'])->middleware('jwt.permission:approve_work');
+    Route::post('/work-approval/portfolio/{id}/reject', [WorkApprovalController::class, 'rejectPortfolioItem'])->middleware('jwt.permission:approve_work');
+    Route::post('/work-approval/submissions/{id}/approve', [WorkApprovalController::class, 'approveWorkSubmission'])->middleware('jwt.permission:approve_work');
+    Route::post('/work-approval/submissions/{id}/reject', [WorkApprovalController::class, 'rejectWorkSubmission'])->middleware('jwt.permission:approve_work');
     
     // Fundi Application routes
-    Route::get('/fundi-applications/requirements', [\App\Http\Controllers\FundiApplicationController::class, 'getRequirements']);
-    Route::get('/fundi-applications/status', [\App\Http\Controllers\FundiApplicationController::class, 'getStatus'])->middleware('jwt.permission:view_applications');
-    Route::get('/fundi-applications/progress', [\App\Http\Controllers\FundiApplicationController::class, 'getProgress'])->middleware('jwt.permission:view_applications');
-    Route::get('/fundi-applications/sections/{sectionName}', [\App\Http\Controllers\FundiApplicationController::class, 'getSection'])->middleware('jwt.permission:view_applications');
-    Route::post('/fundi-applications/sections', [\App\Http\Controllers\FundiApplicationController::class, 'submitSection'])->middleware('jwt.permission:create_applications');
-    Route::post('/fundi-applications/submit', [\App\Http\Controllers\FundiApplicationController::class, 'submitFinalApplication'])->middleware('jwt.permission:create_applications');
-    Route::post('/fundi-applications', [\App\Http\Controllers\FundiApplicationController::class, 'store'])->middleware('jwt.permission:create_applications');
-    Route::get('/fundi-applications', [\App\Http\Controllers\FundiApplicationController::class, 'index'])->middleware('jwt.permission:view_all_applications');
-    Route::get('/fundi-applications/{id}', [\App\Http\Controllers\FundiApplicationController::class, 'show'])->middleware('jwt.permission:view_applications');
-    Route::patch('/fundi-applications/{id}/status', [\App\Http\Controllers\FundiApplicationController::class, 'updateStatus'])->middleware('jwt.permission:manage_applications');
-    Route::delete('/fundi-applications/{id}', [\App\Http\Controllers\FundiApplicationController::class, 'destroy'])->middleware('jwt.permission:delete_applications');
+    Route::get('/fundi-applications/requirements', [FundiApplicationController::class, 'getRequirements']);
+    Route::get('/fundi-applications/status', [FundiApplicationController::class, 'getStatus'])->middleware('jwt.permission:view_applications');
+    Route::get('/fundi-applications/progress', [FundiApplicationController::class, 'getProgress'])->middleware('jwt.permission:view_applications');
+    Route::get('/fundi-applications/sections/{sectionName}', [FundiApplicationController::class, 'getSection'])->middleware('jwt.permission:view_applications');
+    Route::post('/fundi-applications/sections', [FundiApplicationController::class, 'submitSection'])->middleware('jwt.permission:create_applications');
+    Route::post('/fundi-applications/submit', [FundiApplicationController::class, 'submitFinalApplication'])->middleware('jwt.permission:create_applications');
+    Route::post('/fundi-applications', [FundiApplicationController::class, 'store'])->middleware('jwt.permission:create_applications');
+    Route::get('/fundi-applications', [FundiApplicationController::class, 'index'])->middleware('jwt.permission:view_all_applications');
+    Route::get('/fundi-applications/{id}', [FundiApplicationController::class, 'show'])->middleware('jwt.permission:view_applications');
+    Route::patch('/fundi-applications/{id}/status', [FundiApplicationController::class, 'updateStatus'])->middleware('jwt.permission:manage_applications');
+    Route::delete('/fundi-applications/{id}', [FundiApplicationController::class, 'destroy'])->middleware('jwt.permission:delete_applications');
     
     // Dashboard routes
     Route::get('/dashboard/overview', [DashboardController::class, 'getOverview'])->middleware('jwt.permission:view_dashboard');
@@ -281,8 +286,8 @@ Route::middleware('jwt.auth')->group(function () {
         Route::patch('/admin/settings', [AdminController::class, 'updateSettings']);
         
         // Admin Settings - Pricing Management
-        Route::get('/admin/settings/pricing', [\App\Http\Controllers\AdminSettingController::class, 'getPricing']);
-        Route::patch('/admin/settings/pricing', [\App\Http\Controllers\AdminSettingController::class, 'updatePricing']);
-        Route::post('/admin/settings/reset-defaults', [\App\Http\Controllers\AdminSettingController::class, 'resetToDefaults']);
+        Route::get('/admin/settings/pricing', [AdminSettingController::class, 'getPricing']);
+        Route::patch('/admin/settings/pricing', [AdminSettingController::class, 'updatePricing']);
+        Route::post('/admin/settings/reset-defaults', [AdminSettingController::class, 'resetToDefaults']);
     });
 });

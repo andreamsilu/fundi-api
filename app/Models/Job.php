@@ -63,4 +63,12 @@ class Job extends Model
     {
         return $this->hasMany(JobMedia::class);
     }
+
+    /**
+     * Get the work submissions for the job.
+     */
+    public function workSubmissions(): HasMany
+    {
+        return $this->hasMany(WorkSubmission::class, 'job_posting_id');
+    }
 }

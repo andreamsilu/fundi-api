@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Job;
 
 class WorkSubmission extends Model
 {
@@ -44,7 +45,7 @@ class WorkSubmission extends Model
      */
     public function jobPosting(): BelongsTo
     {
-        return $this->belongsTo(JobPosting::class);
+        return $this->belongsTo(Job::class, 'job_posting_id');
     }
 
     /**
