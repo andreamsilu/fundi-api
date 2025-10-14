@@ -83,7 +83,7 @@ class FeedController extends Controller
             // Apply search filter
             if ($search) {
                 $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
+                    $q->where('full_name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
                       ->orWhere('phone', 'like', "%{$search}%");
                 });
@@ -175,7 +175,7 @@ class FeedController extends Controller
                 return [
                     // Essential info
                     'id' => $fundi->id,
-                    'name' => $fundi->name ?? $fundi->phone,
+                    'name' => $fundi->full_name ?? $fundi->phone,
                     'email' => $fundi->email,
                     'phone' => $fundi->phone,
                     'profile_image' => $profile->profile_image ?? null,
@@ -394,7 +394,7 @@ class FeedController extends Controller
             // Build response payload matching mobile model needs
             $profile = [
                 'id' => (string) $fundi->id,
-                'name' => $fundi->full_name ?? ($fundi->name ?? $fundi->phone),
+                'name' => $fundi->full_name ?? $fundi->phone,
                 'email' => $fundi->email ?? '',
                 'phone' => $fundi->phone,
                 'profileImage' => optional($fundi->fundiProfile)->profile_image ?? null,
@@ -537,7 +537,7 @@ class FeedController extends Controller
                     // Safe serialization for nearby fundis
                     return [
                         'id' => $fundi->id,
-                        'name' => $fundi->name,
+                        'name' => $fundi->full_name ?? $fundi->phone,
                         'phone' => $fundi->phone,
                         'email' => $fundi->email,
                         'fundi_profile' => $fundi->fundiProfile ? [
