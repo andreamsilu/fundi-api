@@ -29,6 +29,7 @@ class FeedController extends Controller
             $location = $request->get('location');
             $skills = $request->get('skills');
             $minRating = $request->get('min_rating', $request->get('minRating'));
+            $categoryId = $request->get('category_id', $request->get('categoryId', $request->get('category')));
             
             // Advanced filters
             $minHourlyRate = $request->get('min_hourly_rate', $request->get('minHourlyRate'));
@@ -42,7 +43,7 @@ class FeedController extends Controller
             $sortOrder = $request->get('sort_order', $request->get('sortOrder', 'desc'));
 
             // Generate cache key based on request parameters (for first page without filters)
-            $hasFilters = $search || $location || $skills || $minRating || $minHourlyRate || 
+            $hasFilters = $search || $location || $skills || $minRating || $categoryId || $minHourlyRate || 
                          $maxHourlyRate || $minExperience || $verifiedOnly || $availableNow || 
                          $sortBy !== 'created_at';
             
@@ -65,7 +66,7 @@ class FeedController extends Controller
                 'visiblePortfolio.media' => function($q) {
                     $q->limit(1); // Only first image per portfolio item
                 },
-                'fundiProfile'
+                'fundiProfile.category' // Include category/profession
             ])
             ->whereHas('roles', function($q) {
                 $q->where('name', 'fundi');
@@ -112,6 +113,13 @@ class FeedController extends Controller
             // Apply minimum rating filter
             if ($minRating) {
                 $query->having('average_rating', '>=', $minRating);
+            }
+
+            // Apply category filter (profession/trade)
+            if ($categoryId) {
+                $query->whereHas('fundiProfile', function($q) use ($categoryId) {
+                    $q->where('category_id', $categoryId);
+                });
             }
 
             // Apply hourly rate filters
@@ -177,8 +185,20 @@ class FeedController extends Controller
                     ? json_decode($profile->skills, true) ?? []
                     : ($profile->skills ?? []);
                 
-                // Primary category is the first skill
-                $primaryCategory = !empty($skillsArray) ? $skillsArray[0] : 'Skilled Fundi';
+                // Get profession from category or fallback to first skill
+                $profession = null;
+                $categoryId = null;
+                $categoryName = null;
+                
+                if ($profile && $profile->category) {
+                    $profession = $profile->category->name;
+                    $categoryId = $profile->category->id;
+                    $categoryName = $profile->category->name;
+                } elseif (!empty($skillsArray)) {
+                    $profession = $skillsArray[0];
+                } else {
+                    $profession = 'Skilled Fundi';
+                }
                 
                 return [
                     // Essential info
@@ -190,9 +210,11 @@ class FeedController extends Controller
                     'location' => $fundi->location ?? $profile->location ?? null,
                     'bio' => \Illuminate\Support\Str::limit($profile->bio ?? '', 150),
                     
-                    // Category/Profession (derived from first skill)
-                    'primary_category' => $primaryCategory,
-                    'profession' => $primaryCategory,
+                    // Category/Profession
+                    'category_id' => $categoryId,
+                    'category_name' => $categoryName,
+                    'primary_category' => $profession,
+                    'profession' => $profession,
                     
                     // Rating info
                     'average_rating' => round((float)($fundi->average_rating ?? 0), 1),

@@ -10,6 +10,7 @@ class FundiProfile extends Model
 {
     protected $fillable = [
         'user_id',
+        'category_id',
         'full_name',
         'location_lat',
         'location_lng',
@@ -32,6 +33,14 @@ class FundiProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the primary category/profession for this fundi.
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     /**
