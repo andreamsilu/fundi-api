@@ -99,13 +99,14 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Portfolio::class, 'fundi_id');
     }
 
+    /**
+     * Get visible portfolio items for this user (works with eager loading)
+     */
     public function visiblePortfolio()
     {
-        // Only fundi users can have visible portfolios
-        if (!$this->isFundi()) {
-            return $this->hasMany(Portfolio::class, 'fundi_id')->whereRaw('1 = 0'); // Empty result
-        }
-        return $this->hasMany(Portfolio::class, 'fundi_id')->where('is_visible', true);
+        return $this->hasMany(Portfolio::class, 'fundi_id')
+            ->where('is_visible', true)
+            ->where('status', 'approved');
     }
 
     public function payments()
