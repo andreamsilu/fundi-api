@@ -308,12 +308,12 @@ class JWTAuthController extends Controller
 
     /**
      * Send OTP for verification
+     * Type field is optional - OTP can be used for registration, password reset, etc.
      */
     public function sendOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string',
-            'type' => 'required|in:registration,password_reset,phone_change',
         ]);
 
         if ($validator->fails()) {
@@ -339,13 +339,13 @@ class JWTAuthController extends Controller
 
     /**
      * Verify OTP
+     * Type field is optional - OTP verification is generic
      */
     public function verifyOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string',
             'otp' => 'required|string',
-            'type' => 'required|in:registration,password_reset,phone_change',
         ]);
 
         if ($validator->fails()) {
