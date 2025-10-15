@@ -439,6 +439,8 @@ class FeedController extends Controller
                 'phone' => $fundi->phone,
                 'profileImage' => optional($fundi->fundiProfile)->profile_image ?? null,
                 'location' => $fundi->location ?? '',
+                'primaryCategory' => optional($fundi->fundiProfile)->primary_category ?? null,
+                'profession' => optional($fundi->fundiProfile)->primary_category ?? null,
                 'rating' => round((float) $averageRating, 1),
                 'totalJobs' => \App\Models\Job::whereHas('applications', function($q) use ($fundi) {
                     $q->where('fundi_id', $fundi->id)->where('status', 'accepted');
@@ -456,6 +458,7 @@ class FeedController extends Controller
                 'isAvailable' => true,
                 'bio' => $fundi->bio ?? optional($fundi->fundiProfile)->bio ?? null,
                 'hourlyRate' => (float) (optional($fundi->fundiProfile)->hourly_rate ?? 0),
+                'experienceYears' => optional($fundi->fundiProfile)->experience_years ?? null,
                 'portfolio' => [
                     'items' => $fundi->visiblePortfolio?->map(function($p) {
                         return [

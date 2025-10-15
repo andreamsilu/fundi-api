@@ -71,15 +71,22 @@ class JWTAuthController extends Controller
 
     /**
      * Register a User.
+     * 
+     * Simplified registration accepting phone and password only.
+     * Additional profile details can be added later via profile update.
+     * User is automatically assigned 'customer' role via User model boot method.
      */
     public function register(Request $request): JsonResponse
     {
+        // Validate registration data
+        // Only phone and password are required for initial registration
+        // Additional fields (full_name, email, nida_number) are optional
         $validator = Validator::make($request->all(), [
-            'full_name' => 'required|string|between:2,100',
             'phone' => 'required|string|unique:users,phone',
-            'email' => 'string|email|max:100|unique:users,email',
-            'password' => 'required|string|confirmed|min:6',
-            'nida_number' => 'required|string|max:20',
+            'password' => 'required|string|min:6',
+            'full_name' => 'nullable|string|between:2,100',
+            'email' => 'nullable|string|email|max:100|unique:users,email',
+            'nida_number' => 'nullable|string|max:20',
         ]);
 
         if ($validator->fails()) {
@@ -90,15 +97,27 @@ class JWTAuthController extends Controller
             ], 422);
         }
 
-        $user = User::create([
-            'full_name' => $request->full_name,
+        // Create user with provided data
+        $userData = [
             'phone' => $request->phone,
-            'email' => $request->email,
             'password' => Hash::make($request->password),
-            'nida_number' => $request->nida_number,
             'status' => 'active',
-        ]);
+        ];
 
+        // Add optional fields if provided
+        if ($request->filled('full_name')) {
+            $userData['full_name'] = $request->full_name;
+        }
+        if ($request->filled('email')) {
+            $userData['email'] = $request->email;
+        }
+        if ($request->filled('nida_number')) {
+            $userData['nida_number'] = $request->nida_number;
+        }
+
+        $user = User::create($userData);
+
+        // Generate JWT token for the new user
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
