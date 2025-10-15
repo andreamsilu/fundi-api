@@ -24,7 +24,9 @@ class SmsService
         $this->baseUrl = config('services.nextsms.api_url');
         $this->authorization = config('services.nextsms.authorization');
         $this->senderId = config('services.nextsms.sender_id');
-        $this->enabled = config('services.nextsms.enabled', true);
+        
+        // Enable if credentials are configured, regardless of SMS_PROVIDER setting
+        $this->enabled = !empty($this->authorization) && !empty($this->baseUrl);
     }
 
     /**
