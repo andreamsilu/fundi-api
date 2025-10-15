@@ -115,11 +115,22 @@ class FeedController extends Controller
                 $query->having('average_rating', '>=', $minRating);
             }
 
-            // Apply category filter (profession/trade)
+            // Apply category filter (profession/trade) - supports both ID and name
             if ($categoryId) {
-                $query->whereHas('fundiProfile', function($q) use ($categoryId) {
-                    $q->where('category_id', $categoryId);
-                });
+                // Check if it's a numeric ID or category name
+                if (is_numeric($categoryId)) {
+                    $query->whereHas('fundiProfile', function($q) use ($categoryId) {
+                        $q->where('category_id', $categoryId);
+                    });
+                } else {
+                    // Filter by category name - need to join through categories table
+                    $categoryRecord = \App\Models\Category::where('name', $categoryId)->first();
+                    if ($categoryRecord) {
+                        $query->whereHas('fundiProfile', function($q) use ($categoryRecord) {
+                            $q->where('category_id', $categoryRecord->id);
+                        });
+                    }
+                }
             }
 
             // Apply hourly rate filters
