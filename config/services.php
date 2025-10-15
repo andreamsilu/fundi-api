@@ -52,4 +52,21 @@ return [
         'enabled' => env('ZENOPAY_ENABLED', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | NextSMS (Tanzanian SMS Gateway)
+    |--------------------------------------------------------------------------
+    | 
+    | NextSMS handles SMS sending for OTP and notifications in Tanzania
+    | Get your credentials from: https://messaging-service.co.tz
+    | Documentation: https://messaging-service.co.tz/docs
+    |
+    */
+    'nextsms' => [
+        'api_url' => env('NEXT_SMS_API_URL', 'https://messaging-service.co.tz/api/sms/v1/text/single'),
+        'authorization' => env('NEXT_SMS_AUTHORIZATION'),
+        'sender_id' => env('NEXT_SMS_SENDER_ID', 'FUNDI'),
+        'enabled' => env('SMS_PROVIDER') === 'nextsms',
+    ],
+
 ];

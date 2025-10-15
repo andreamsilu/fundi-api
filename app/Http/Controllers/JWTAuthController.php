@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Http\Resources\UserResource;
+use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -13,11 +14,14 @@ use Tymon\JWTAuth\Exceptions\JWTException;
 
 class JWTAuthController extends Controller
 {
+    protected SmsService $smsService;
+
     /**
      * Create a new AuthController instance.
      */
-    public function __construct()
+    public function __construct(SmsService $smsService)
     {
+        $this->smsService = $smsService;
         // Middleware is handled in routes
     }
 
@@ -307,8 +311,8 @@ class JWTAuthController extends Controller
     }
 
     /**
-     * Send OTP for verification
-     * Type field is optional - OTP can be used for registration, password reset, etc.
+     * Send OTP for verification via SMS
+     * Generates OTP, stores in cache, and sends via NextSMS
      */
     public function sendOtp(Request $request): JsonResponse
     {
@@ -324,28 +328,40 @@ class JWTAuthController extends Controller
             ], 422);
         }
 
-        // Generate OTP
-        $otp = rand(100000, 999999);
-        
-        // TODO: Store OTP in cache/database with expiry
-        // TODO: Send OTP via SMS service
-        
+        // Send OTP via SMS service (generates, stores in cache, and sends SMS)
+        $result = $this->smsService->sendOtp(
+            phoneNumber: $request->phone,
+            otpLength: 6,
+            expiryMinutes: 5
+        );
+
+        if ($result['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP sent successfully to ' . $request->phone,
+                'data' => [
+                    'expires_in' => $result['expires_in'],
+                    // Include OTP in debug mode only
+                    'otp' => $result['otp'] ?? null,
+                ]
+            ]);
+        }
+
         return response()->json([
-            'success' => true,
-            'message' => 'OTP sent successfully',
-            'data' => config('app.debug') ? ['otp' => $otp] : []
-        ]);
+            'success' => false,
+            'message' => $result['message'] ?? 'Failed to send OTP',
+        ], 500);
     }
 
     /**
-     * Verify OTP
-     * Type field is optional - OTP verification is generic
+     * Verify OTP against cached value
+     * Checks OTP from cache and deletes it if valid
      */
     public function verifyOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string',
-            'otp' => 'required|string',
+            'otp' => 'required|string|digits:6',
         ]);
 
         if ($validator->fails()) {
@@ -356,12 +372,20 @@ class JWTAuthController extends Controller
             ], 422);
         }
 
-        // TODO: Verify OTP from cache/database
-        
+        // Verify OTP using SMS service
+        $isValid = $this->smsService->verifyOtp($request->phone, $request->otp);
+
+        if ($isValid) {
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP verified successfully'
+            ]);
+        }
+
         return response()->json([
-            'success' => true,
-            'message' => 'OTP verified successfully'
-        ]);
+            'success' => false,
+            'message' => 'Invalid or expired OTP. Please request a new code.'
+        ], 422);
     }
 }
 
