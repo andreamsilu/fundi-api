@@ -42,18 +42,29 @@ class PaymentService
 
     /**
      * Check if user can perform action based on payment plan
+     * 
+     * @param User $user
+     * @param string $action Possible values: post_job, apply_job, browse_fundis, message_fundi
+     * @return bool True if user can perform the action
      */
     public function canPerformAction(User $user, string $action): bool
     {
         $plan = $this->getUserPaymentPlan($user);
+        
+        // Get active subscription
+        $subscription = $this->getUserActiveSubscription($user);
         
         // Free plan allows all actions by default
         if ($plan->isFree()) {
             return true;
         }
         
-        // Check subscription plan limits
+        // Check subscription plan limits (must have ACTIVE subscription)
         if ($plan->isSubscription()) {
+            // Subscription must be active
+            if (!$subscription || !$subscription->isActive()) {
+                return false; // No active subscription - deny access
+            }
             return $this->checkSubscriptionLimits($user, $plan, $action);
         }
         
@@ -93,12 +104,42 @@ class PaymentService
 
     /**
      * Check pay-per-use requirements
+     * User must have paid for the specific action
      */
     private function checkPayPerUseRequirements(User $user, PaymentPlan $plan, string $action): bool
     {
-        // For pay-per-use, we need to check if user has sufficient balance
-        // or if they can make payment for the action
-        return true; // This would be implemented based on specific requirements
+        $limits = $plan->limits ?? [];
+        
+        switch ($action) {
+            case 'post_job':
+                // Check if plan allows job posting
+                $jobPostingCost = $limits['job_posting_cost'] ?? 0;
+                if ($jobPostingCost == 0) {
+                    return false; // This plan doesn't support job posting
+                }
+                // User must pay per job - they can post but will be charged
+                return true;
+                
+            case 'apply_job':
+                // Check if plan allows job applications
+                $applicationCost = $limits['application_cost'] ?? 0;
+                if ($applicationCost == 0) {
+                    return false; // This plan doesn't support applications
+                }
+                // User must pay per application - they can apply but will be charged
+                return true;
+                
+            case 'browse_fundis':
+                // Browsing fundis is typically free even for pay-per-use
+                return true;
+                
+            case 'message_fundi':
+                // Messaging requires payment or subscription
+                return false; // Pay-per-use plans don't support messaging
+                
+            default:
+                return false;
+        }
     }
 
     /**
