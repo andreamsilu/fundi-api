@@ -536,16 +536,32 @@ class PaymentController extends Controller
             // Generate unique order ID
             $orderId = 'FUNDI-' . strtoupper(Str::random(10)) . '-' . time();
 
+            // Get user's current payment plan or use default
+            $paymentPlan = $this->paymentService->getUserPaymentPlan($user);
+            if (!$paymentPlan) {
+                // Use the first available plan or default plan
+                $paymentPlan = PaymentPlan::where('is_active', true)->first();
+                if (!$paymentPlan) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No payment plan available'
+                    ], 400);
+                }
+            }
+
             // Create payment transaction record
             $transaction = PaymentTransaction::create([
                 'user_id' => $user->id,
+                'payment_plan_id' => $paymentPlan->id,
+                'transaction_type' => $request->payment_type,
                 'transaction_id' => $orderId,
                 'amount' => $request->amount,
                 'currency' => 'TZS',
                 'payment_method' => 'mobile_money',
-                'payment_type' => $request->payment_type,
+                'payment_reference' => null,
                 'reference_id' => $request->reference_id,
                 'status' => 'pending',
+                'description' => ucfirst($request->payment_type) . ' payment',
                 'metadata' => [
                     'phone_number' => $phoneNumber,
                     'buyer_name' => $request->buyer_name,
