@@ -505,7 +505,7 @@ class PaymentController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'amount' => 'required|numeric|min:1000', // Minimum 1000 TZS
+                'amount' => 'required|numeric|min:100', // Minimum 100 TZS (changed for testing)
                 'phone_number' => 'required|string',
                 'buyer_name' => 'required|string',
                 'buyer_email' => 'required|email',
