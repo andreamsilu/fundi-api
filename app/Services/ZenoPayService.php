@@ -7,6 +7,7 @@ use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 use App\Models\Payment;
 use App\Models\PaymentTransaction;
+use App\Services\SmsService;
 
 /**
  * ZenoPay Service
@@ -259,6 +260,7 @@ class ZenoPayService
                     'status' => 'completed',
                     'gateway_reference' => $reference,
                     'completed_at' => now(),
+                    'paid_at' => now(),
                     'metadata' => array_merge($transaction->metadata ?? [], $metadata),
                 ]);
 
@@ -271,6 +273,9 @@ class ZenoPayService
                     'order_id' => $orderId,
                     'reference' => $reference
                 ]);
+
+                // Send SMS notification for subscription payments
+                $this->sendPaymentConfirmationSms($transaction);
 
                 return [
                     'success' => true,
@@ -347,6 +352,77 @@ class ZenoPayService
             'TIGO-TZ' => 'Tigo Pesa',
             'AIRTEL-TZ' => 'Airtel Money',
         ];
+    }
+
+    /**
+     * Send payment confirmation SMS for subscription payments
+     * 
+     * @param PaymentTransaction $transaction
+     * @return void
+     */
+    private function sendPaymentConfirmationSms(PaymentTransaction $transaction): void
+    {
+        try {
+            // Only send SMS for subscription payments
+            if ($transaction->transaction_type !== 'subscription') {
+                Log::info('ZenoPay: Skipping SMS - not a subscription payment', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'type' => $transaction->transaction_type
+                ]);
+                return;
+            }
+
+            // Load user relationship
+            $user = $transaction->user;
+            if (!$user || !$user->phone) {
+                Log::warning('ZenoPay: Cannot send SMS - user or phone not found', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'user_id' => $transaction->user_id
+                ]);
+                return;
+            }
+
+            // Load payment plan relationship
+            $paymentPlan = $transaction->paymentPlan;
+            if (!$paymentPlan) {
+                Log::warning('ZenoPay: Cannot send SMS - payment plan not found', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'payment_plan_id' => $transaction->payment_plan_id
+                ]);
+                return;
+            }
+
+            // Create SMS message
+            $amount = number_format($transaction->amount, 0);
+            $planName = $paymentPlan->name ?? 'Subscription';
+            $reference = $transaction->gateway_reference ?? $transaction->transaction_id;
+            
+            $message = "Payment Successful! Your {$planName} subscription of TZS {$amount} has been confirmed. Reference: {$reference}. Thank you for using Fundi App!";
+
+            // Send SMS
+            $smsService = new SmsService();
+            $result = $smsService->sendSms($user->phone, $message);
+
+            if ($result['success']) {
+                Log::info('ZenoPay: Subscription SMS sent successfully', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'phone' => $user->phone,
+                    'plan' => $planName
+                ]);
+            } else {
+                Log::warning('ZenoPay: Failed to send subscription SMS', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'phone' => $user->phone,
+                    'error' => $result['message']
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('ZenoPay: Exception while sending subscription SMS', [
+                'transaction_id' => $transaction->transaction_id ?? null,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }
 

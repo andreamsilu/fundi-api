@@ -12,22 +12,26 @@ class PaymentTransaction extends Model
     protected $fillable = [
         'user_id',
         'payment_plan_id',
+        'transaction_id',
         'transaction_type',
         'reference_id',
         'amount',
         'currency',
         'payment_method',
         'payment_reference',
+        'gateway_reference',
         'status',
         'description',
         'metadata',
         'paid_at',
+        'completed_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'metadata' => 'array',
         'paid_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
 
     /**

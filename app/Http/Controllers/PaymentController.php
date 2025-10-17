@@ -8,9 +8,11 @@ use App\Models\UserSubscription;
 use App\Models\PaymentTransaction;
 use App\Services\PaymentService;
 use App\Services\ZenoPayService;
+use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PaymentController extends Controller
@@ -621,12 +623,16 @@ class PaymentController extends Controller
                 // Update local transaction if completed
                 if ($statusResult['payment_status'] === 'COMPLETED') {
                     $transaction = PaymentTransaction::where('transaction_id', $orderId)->first();
-                    if ($transaction) {
+                    if ($transaction && $transaction->status !== 'completed') {
                         $transaction->update([
                             'status' => 'completed',
                             'gateway_reference' => $statusResult['reference'],
                             'completed_at' => now(),
+                            'paid_at' => now(),
                         ]);
+
+                        // Send subscription SMS notification
+                        $this->sendSubscriptionSms($transaction);
                     }
                 }
 
@@ -769,6 +775,74 @@ class PaymentController extends Controller
                 'message' => 'Failed to retrieve receipt',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
+        }
+    }
+
+    /**
+     * Send subscription confirmation SMS
+     * 
+     * @param PaymentTransaction $transaction
+     * @return void
+     */
+    private function sendSubscriptionSms(PaymentTransaction $transaction): void
+    {
+        try {
+            // Only send SMS for subscription payments
+            if ($transaction->transaction_type !== 'subscription') {
+                Log::info('Payment: Skipping SMS - not a subscription payment', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'type' => $transaction->transaction_type
+                ]);
+                return;
+            }
+
+            // Load relationships
+            $user = $transaction->user;
+            $paymentPlan = $transaction->paymentPlan;
+
+            if (!$user || !$user->phone) {
+                Log::warning('Payment: Cannot send SMS - user or phone not found', [
+                    'transaction_id' => $transaction->transaction_id
+                ]);
+                return;
+            }
+
+            if (!$paymentPlan) {
+                Log::warning('Payment: Cannot send SMS - payment plan not found', [
+                    'transaction_id' => $transaction->transaction_id
+                ]);
+                return;
+            }
+
+            // Create SMS message
+            $amount = number_format($transaction->amount, 0);
+            $planName = $paymentPlan->name ?? 'Subscription';
+            $reference = $transaction->gateway_reference ?? $transaction->transaction_id;
+            
+            $message = "Payment Successful! Your {$planName} subscription of TZS {$amount} has been confirmed. Reference: {$reference}. Thank you for using Fundi App!";
+
+            // Send SMS
+            $smsService = new SmsService();
+            $result = $smsService->sendSms($user->phone, $message);
+
+            if ($result['success']) {
+                Log::info('Payment: Subscription SMS sent successfully', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'phone' => $user->phone,
+                    'plan' => $planName
+                ]);
+            } else {
+                Log::warning('Payment: Failed to send subscription SMS', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'error' => $result['message']
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Payment: Exception while sending subscription SMS', [
+                'transaction_id' => $transaction->transaction_id ?? null,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }
