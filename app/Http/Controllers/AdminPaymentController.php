@@ -298,15 +298,16 @@ class AdminPaymentController extends Controller
             }
 
             // Search by transaction ID, reference, or user name
-            if ($request->has('search')) {
+            if ($request->has('search') && !empty($request->search)) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
                     $q->where('transaction_id', 'like', "%{$search}%")
                       ->orWhere('gateway_reference', 'like', "%{$search}%")
                       ->orWhere('payment_reference', 'like', "%{$search}%")
                       ->orWhereHas('user', function($q2) use ($search) {
-                          $q2->where('name', 'like', "%{$search}%")
-                             ->orWhere('email', 'like', "%{$search}%");
+                          $q2->where('full_name', 'like', "%{$search}%")
+                             ->orWhere('email', 'like', "%{$search}%")
+                             ->orWhere('phone', 'like', "%{$search}%");
                       });
                 });
             }
@@ -316,19 +317,20 @@ class AdminPaymentController extends Controller
             $sortOrder = $request->get('sort_order', 'desc');
             $query->orderBy($sortBy, $sortOrder);
 
+            // Calculate statistics for current filtered results BEFORE pagination
+            $statsQuery = clone $query;
+            $stats = [
+                'total_count' => $statsQuery->count(),
+                'total_amount' => (clone $statsQuery)->sum('amount'),
+                'completed_count' => (clone $statsQuery)->where('status', 'completed')->count(),
+                'pending_count' => (clone $statsQuery)->where('status', 'pending')->count(),
+                'failed_count' => (clone $statsQuery)->where('status', 'failed')->count(),
+                'completed_amount' => (clone $statsQuery)->where('status', 'completed')->sum('amount'),
+            ];
+
             // Pagination
             $perPage = $request->get('per_page', 20);
             $transactions = $query->paginate($perPage);
-
-            // Calculate statistics for current filtered results
-            $stats = [
-                'total_count' => $query->count(),
-                'total_amount' => $query->sum('amount'),
-                'completed_count' => (clone $query)->where('status', 'completed')->count(),
-                'pending_count' => (clone $query)->where('status', 'pending')->count(),
-                'failed_count' => (clone $query)->where('status', 'failed')->count(),
-                'completed_amount' => (clone $query)->where('status', 'completed')->sum('amount'),
-            ];
 
             return response()->json([
                 'success' => true,
